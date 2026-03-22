@@ -1,4 +1,4 @@
-import type { CfnFragment } from "./types";
+import type { CfnFragment } from "../types";
 
 /** Shared logical id for the stack Event API (one per template). */
 export const APPSYNC_EVENT_API_LOGICAL_ID = "AppSyncEventApi";

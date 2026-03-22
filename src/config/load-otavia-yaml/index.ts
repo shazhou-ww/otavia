@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { parseDocument, type SchemaOptions } from "yaml";
-import type { OtaviaYaml } from "./otavia-yaml-schema";
-import { isEnvRef, isParamRef, isSecretRef } from "./cell-yaml-schema";
-import { resolveOtaviaWorkspacePaths } from "./resolve-otavia-workspace";
+import type { OtaviaYaml } from "../otavia-yaml-schema";
+import { isEnvRef, isParamRef, isSecretRef } from "../cell-yaml-schema";
+import { resolveOtaviaWorkspacePaths } from "../resolve-otavia-workspace";
 
 const CONFIG_FILENAME = "otavia.yaml";
 const DEFAULT_SCOPE = "@otavia";

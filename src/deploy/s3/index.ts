@@ -1,5 +1,5 @@
-import type { CfnFragment } from "./types";
-import { toPascalCase } from "./types";
+import type { CfnFragment } from "../types";
+import { toPascalCase } from "../types";
 
 /**
  * Generate S3 bucket fragment (data bucket).

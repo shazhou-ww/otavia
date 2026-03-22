@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { getOtaviaPackageRoot } from "./resolve-package-root";
+import { getOtaviaPackageRoot } from "../resolve-package-root";
 
 const PLACEHOLDER = /\{\{([a-zA-Z0-9_]+)\}\}/g;
 

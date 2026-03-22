@@ -22,5 +22,5 @@ export function getOtaviaPackageRoot(): string {
     if (parent === dir) break;
     dir = parent;
   }
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 }

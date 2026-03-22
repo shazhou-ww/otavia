@@ -1,5 +1,5 @@
-import type { CfnFragment } from "./types";
-import { toPascalCase } from "./types";
+import type { CfnFragment } from "../types";
+import { toPascalCase } from "../types";
 
 export interface LambdaFragmentProps {
   handlerPath: string;

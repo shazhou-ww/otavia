@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import type { CellConfig } from "../../config/cell-yaml-schema";
+import type { CellConfig } from "../../../config/cell-yaml-schema";
 
 const AUTHORIZATION_SERVER_WELL_KNOWN_PREFIX = "/.well-known/oauth-authorization-server";
 const PROTECTED_RESOURCE_WELL_KNOWN_PREFIX = "/.well-known/oauth-protected-resource";

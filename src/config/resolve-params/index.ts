@@ -1,4 +1,4 @@
-import { isEnvRef, isParamRef, isSecretRef } from "./cell-yaml-schema";
+import { isEnvRef, isParamRef, isSecretRef } from "../cell-yaml-schema";
 
 /** Thrown when a required !Env or !Secret is missing from envMap and onMissingParam is "throw". */
 export class MissingParamsError extends Error {
