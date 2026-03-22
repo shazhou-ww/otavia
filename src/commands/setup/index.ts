@@ -2,15 +2,15 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 import { homedir, hostname as osHostname } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
-import { loadOtaviaYamlAt } from "../config/load-otavia-yaml";
-import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace";
-import { loadCellConfig } from "../config/load-cell-yaml";
-import { resolveCellDir } from "../config/resolve-cell-dir";
-import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../config/resolve-params";
-import { isEnvRef, isSecretRef } from "../config/cell-yaml-schema";
-import { loadEnvForCell } from "../utils/env";
-import { resolvePortsFromEnv } from "../config/ports";
-import { loadRenderedTemplate, loadTemplate, renderTemplate } from "../templates/load";
+import { loadOtaviaYamlAt } from "../../config/load-otavia-yaml";
+import { resolveOtaviaWorkspacePaths } from "../../config/resolve-otavia-workspace";
+import { loadCellConfig } from "../../config/load-cell-yaml";
+import { resolveCellDir } from "../../config/resolve-cell-dir";
+import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../../config/resolve-params";
+import { isEnvRef, isSecretRef } from "../../config/cell-yaml-schema";
+import { loadEnvForCell } from "../../utils/env";
+import { resolvePortsFromEnv } from "../../config/ports";
+import { loadRenderedTemplate, loadTemplate, renderTemplate } from "../../templates/load";
 
 type CommandResult = { exitCode: number; stdout: string; stderr: string };
 type CommandOptions = { inheritStdio?: boolean; env?: Record<string, string | undefined> };

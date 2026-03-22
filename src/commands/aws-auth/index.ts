@@ -1,4 +1,4 @@
-import { getAwsProfile } from "./aws";
+import { getAwsProfile } from "../aws";
 
 export type AwsCliRunner = (
   args: string[],

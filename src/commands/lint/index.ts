@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { loadOtaviaYamlAt } from "../config/load-otavia-yaml";
-import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace";
-import { resolveCellDir } from "../config/resolve-cell-dir";
+import { loadOtaviaYamlAt } from "../../config/load-otavia-yaml";
+import { resolveOtaviaWorkspacePaths } from "../../config/resolve-otavia-workspace";
+import { resolveCellDir } from "../../config/resolve-cell-dir";
 
 /**
  * Run biome check in each resolved cellDir. With fix: add --write; with unsafe: add --unsafe.
