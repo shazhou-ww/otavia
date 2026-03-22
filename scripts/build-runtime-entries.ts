@@ -12,7 +12,7 @@ mkdirSync(outdir, { recursive: true });
 const nodeExternal = /^node:/;
 
 const viteResult = await Bun.build({
-  entrypoints: [join(root, "src/commands/dev/main-frontend-runtime/vite-config/index.ts")],
+  entrypoints: [join(root, "src/commands/dev/main-frontend-runtime/vite-config.ts")],
   outdir,
   naming: "[name].js",
   format: "esm",
@@ -26,7 +26,7 @@ if (!viteResult.success) {
 }
 
 const mainResult = await Bun.build({
-  entrypoints: [join(root, "src/commands/dev/main-frontend-runtime/main-entry/index.ts")],
+  entrypoints: [join(root, "src/commands/dev/main-frontend-runtime/main-entry.ts")],
   outdir,
   naming: "[name].js",
   format: "esm",
