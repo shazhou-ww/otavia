@@ -1,12 +1,20 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { loadOtaviaYaml } from "../config/load-otavia-yaml.js";
 import { getOtaviaPackageVersion } from "../package-version.js";
+import { loadRenderedTemplate, loadTemplate } from "../templates/load.js";
 import {
   defaultPackageScopeFromDir,
   normalizePackageScope,
   scopedPackageName,
 } from "../utils/package-scope.js";
+
+function initGitignoreLines(): string[] {
+  return loadTemplate("init/gitignore-lines.txt")
+    .split("\n")
+    .map((l) => l.trimEnd())
+    .filter((l) => l.length > 0);
+}
 
 const HELLO_MOUNT = "hello";
 const APPS_MAIN = join("apps", "main");
@@ -28,7 +36,7 @@ function packageBaseName(rootDir: string): string {
 }
 
 function mergeGitignore(root: string): void {
-  const lines = ["node_modules/", "dist/", ".otavia/", ".env.local", "apps/main/.env"];
+  const lines = initGitignoreLines();
   const p = resolve(root, ".gitignore");
   if (!existsSync(p)) {
     writeFileSync(p, `${lines.join("\n")}\n`, "utf-8");
@@ -67,19 +75,7 @@ export function initCommand(
 
   const packagesReadme = resolve(root, "packages", "README.md");
   if (!existsSync(packagesReadme) || options.force) {
-    writeFileSync(
-      packagesReadme,
-      `# packages/
-
-Optional shared workspace libraries used by multiple cells or apps.
-
-- Cells live under \`../cells/\` (code + \`cell.yaml\` only).
-- Stack entry and \`otavia.yaml\` live under \`../apps/main/\`.
-
-This monorepo uses **Bun** for installs and scripts. Cells are written in **TypeScript**; use \`.tsx\` for React frontends.
-`,
-      "utf-8"
-    );
+    writeFileSync(packagesReadme, loadTemplate("init/packages-readme.md"), "utf-8");
   }
 
   const configPath = resolve(root, APPS_MAIN, "otavia.yaml");
@@ -94,28 +90,26 @@ This monorepo uses **Bun** for installs and scripts. Cells are written in **Type
     "my-stack";
   const domainHost = options.domain?.trim() || "example.com";
 
-  const yamlContent = `# Otavia stack — edit stackName, domain, and cells.
-stackName: ${yamlScalar(stackName)}
-defaultCell: ${HELLO_MOUNT}
-domain:
-  host: ${yamlScalar(domainHost)}
-cells:
-  ${HELLO_MOUNT}: ${yamlScalar(helloPkg)}
-`;
-
-  writeFileSync(configPath, yamlContent, "utf-8");
-
-  const mainEnvExample = `# Local dev ports: backend = PORT_BASE + 1900, frontend = PORT_BASE + 100
-PORT_BASE=${DEFAULT_PORT_BASE}
-# AWS (for deploy / otavia dev credential check)
-# AWS_PROFILE=default
-# AWS_REGION=us-east-1
-# Copy to .env (gitignored under apps/main/): otavia setup, or: cp .env.example .env
-`;
+  writeFileSync(
+    configPath,
+    loadRenderedTemplate("init/otavia.yaml.tmpl", {
+      stackNameYaml: yamlScalar(stackName),
+      helloMount: HELLO_MOUNT,
+      domainHostYaml: yamlScalar(domainHost),
+      helloPkgYaml: yamlScalar(helloPkg),
+    }),
+    "utf-8"
+  );
 
   const mainEnvExamplePath = resolve(root, APPS_MAIN, ".env.example");
   if (!existsSync(mainEnvExamplePath) || options.force) {
-    writeFileSync(mainEnvExamplePath, mainEnvExample, "utf-8");
+    writeFileSync(
+      mainEnvExamplePath,
+      loadRenderedTemplate("init/apps-main.env.example.tmpl", {
+        defaultPortBase: String(DEFAULT_PORT_BASE),
+      }),
+      "utf-8"
+    );
   }
 
   writeJson(resolve(root, "package.json"), {
@@ -170,24 +164,7 @@ PORT_BASE=${DEFAULT_PORT_BASE}
   if (!existsSync(cellYamlPath) || options.force) {
     writeFileSync(
       cellYamlPath,
-      `name: ${HELLO_MOUNT}
-backend:
-  runtime: nodejs20.x
-  entries:
-    api:
-      handler: backend/handler.ts
-      timeout: 30
-      memory: 256
-      routes:
-        - /api/*
-frontend:
-  dir: frontend
-  entries:
-    shell:
-      entry: shell.tsx
-      routes:
-        - /
-`,
+      loadRenderedTemplate("init/cell-hello/cell.yaml.tmpl", { helloMount: HELLO_MOUNT }),
       "utf-8"
     );
   }
@@ -220,49 +197,19 @@ frontend:
 
   writeFileSync(
     resolve(cellDir, "backend", "app.ts"),
-    `import { Hono } from "hono";
-
-/**
- * Hono app factory for local dev (otavia dev gateway) and shared logic.
- */
-export function createAppForBackend(_env: Record<string, string>) {
-  const app = new Hono();
-  app.get("/api/hello", (c) => c.json({ message: "hello from ${helloPkg}" }));
-  return app;
-}
-`,
+    loadRenderedTemplate("init/cell-hello/backend/app.ts.tmpl", { helloPkg }),
     "utf-8"
   );
 
   writeFileSync(
     resolve(cellDir, "backend", "handler.ts"),
-    `import { handle } from "hono/aws-lambda";
-import { createAppForBackend } from "./app";
-
-const app = createAppForBackend(process.env as Record<string, string>);
-
-export const handler = handle(app);
-`,
+    loadTemplate("init/cell-hello/backend/handler.ts"),
     "utf-8"
   );
 
   writeFileSync(
     resolve(cellDir, "frontend", "shell.tsx"),
-    `import { createRoot } from "react-dom/client";
-
-/**
- * Loaded by the main dev shell (dynamic import \`${helloPkg}/frontend\`).
- * Renders into \`#root\` from apps/main/.otavia/dev/main-frontend.
- */
-function Hello() {
-  return <h1>Hello, Otavia!</h1>;
-}
-
-const el = document.getElementById("root");
-if (el) {
-  createRoot(el).render(<Hello />);
-}
-`,
+    loadRenderedTemplate("init/cell-hello/frontend/shell.tsx.tmpl", { helloPkg }),
     "utf-8"
   );
 

@@ -1,0 +1,10 @@
+import { Hono } from "hono";
+
+/**
+ * Hono app factory for local dev (otavia dev gateway) and shared logic.
+ */
+export function createAppForBackend(_env: Record<string, string>) {
+  const app = new Hono();
+  app.get("/api/hello", (c) => c.json({ message: "hello from {{helloPkg}}" }));
+  return app;
+}

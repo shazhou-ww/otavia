@@ -1,0 +1,17 @@
+name: {{helloMount}}
+backend:
+  runtime: nodejs20.x
+  entries:
+    api:
+      handler: backend/handler.ts
+      timeout: 30
+      memory: 256
+      routes:
+        - /api/*
+frontend:
+  dir: frontend
+  entries:
+    shell:
+      entry: shell.tsx
+      routes:
+        - /

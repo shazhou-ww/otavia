@@ -10,6 +10,7 @@ import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../con
 import { isEnvRef, isSecretRef } from "../config/cell-yaml-schema.js";
 import { loadEnvForCell } from "../utils/env.js";
 import { resolvePortsFromEnv } from "../config/ports.js";
+import { loadRenderedTemplate, loadTemplate, renderTemplate } from "../templates/load.js";
 
 type CommandResult = { exitCode: number; stdout: string; stderr: string };
 type CommandOptions = { inheritStdio?: boolean; env?: Record<string, string | undefined> };
@@ -173,19 +174,15 @@ export async function setupCommand(
     writeFileSync(tunnelLegacyPath, tunnelYaml, "utf-8");
 
     const readmePath = path.join(configDir, "README.md");
-    const readmeContent = [
-      "Otavia tunnel is configured.",
-      "",
-      `Public host: https://${tunnel.hostname}`,
-      `Tunnel name: ${tunnel.tunnelName}`,
-      "",
-      `Start tunnel: cloudflared tunnel --config "${tunnelConfigPath}" run`,
-      "",
-      "Then start otavia dev with tunnel mode:",
-      "bun run otavia dev --tunnel --tunnel-config " + JSON.stringify(tunnelConfigPath),
-      "",
-    ].join("\n");
-    writeFileSync(readmePath, readmeContent, "utf-8");
+    writeFileSync(
+      readmePath,
+      loadRenderedTemplate("setup/tunnel-readme.md.tmpl", {
+        hostname: tunnel.hostname,
+        tunnelName: tunnel.tunnelName,
+        tunnelConfigPathJson: JSON.stringify(tunnelConfigPath),
+      }),
+      "utf-8"
+    );
 
     console.log("Tunnel config written to", tunnelConfigPath);
     console.log("Public host:", `https://${tunnel.hostname}`);
@@ -330,27 +327,15 @@ function isValidDevRootDomain(domain: string): boolean {
 }
 
 function printCloudflareTokenInstructions(): void {
-  console.log("");
-  console.log(`${ANSI_BOLD}${ANSI_CYAN}=== Cloudflare API Token ===${ANSI_RESET}`);
-  console.log(`${ANSI_BOLD}${ANSI_YELLOW}[REQUIRED]${ANSI_RESET} Token is required for automatic DNS setup.`);
-  console.log("");
-  console.log(`${ANSI_BOLD}Step 1${ANSI_RESET}) Open: ${ANSI_CYAN}https://dash.cloudflare.com/profile/api-tokens${ANSI_RESET}`);
-  console.log(`${ANSI_BOLD}Step 2${ANSI_RESET}) Create token:`);
-  console.log(`  - ${ANSI_BOLD}${ANSI_YELLOW}[RECOMMENDED]${ANSI_RESET} Use template ${ANSI_BOLD}'Edit zone DNS'${ANSI_RESET}`);
-  console.log(`  - ${ANSI_BOLD}${ANSI_YELLOW}[FORM]${ANSI_RESET} In the next form (after selecting the template), set:`);
-  console.log(`      * Permissions row #1: Zone / DNS / Edit`);
-  console.log(`      * Click '+ Add more' and add row #2: Zone / Zone / Read`);
-  console.log(`      * Zone Resources: default to Include -> All zones (or narrow to your dev zone)`);
-  console.log(`      * Client IP filtering: leave empty`);
-  console.log(`      * TTL: default no TTL (or set TTL per your security policy)`);
-  console.log(`  ${ANSI_DIM}- [ADVANCED] If creating custom token, permissions:${ANSI_RESET}`);
-  console.log(`  ${ANSI_DIM}    * Zone -> Zone -> Read${ANSI_RESET}`);
-  console.log(`  ${ANSI_DIM}    * Zone -> DNS -> Edit${ANSI_RESET}`);
-  console.log(`  ${ANSI_DIM}    * Zone -> SSL and Certificates -> Edit (optional, future cert automation)${ANSI_RESET}`);
-  console.log("");
-  console.log(`${ANSI_BOLD}${ANSI_YELLOW}[IMPORTANT]${ANSI_RESET}`);
-  console.log(`  - Zone Resources should include the dev zone you plan to use.`);
-  console.log(`  - We will use this token to auto-list zones and configure DNS records.`);
+  console.log(
+    renderTemplate(loadTemplate("setup/cloudflare-api-token-instructions.tmpl"), {
+      B: ANSI_BOLD,
+      C: ANSI_CYAN,
+      R: ANSI_RESET,
+      Y: ANSI_YELLOW,
+      D: ANSI_DIM,
+    })
+  );
 }
 
 async function resolveTunnelInputs(deps?: {
@@ -537,15 +522,12 @@ export function buildTunnelConfigYaml(input: {
   hostname: string;
   localPort: number;
 }): string {
-  return [
-    `tunnel: ${input.tunnelName}`,
-    `credentials-file: ${input.credentialsPath}`,
-    "ingress:",
-    `  - hostname: ${JSON.stringify(input.hostname)}`,
-    `    service: http://127.0.0.1:${input.localPort}`,
-    "  - service: http_status:404",
-    "",
-  ].join("\n");
+  return loadRenderedTemplate("setup/cloudflared-config.yaml.tmpl", {
+    tunnelName: input.tunnelName,
+    credentialsFile: input.credentialsPath,
+    hostnameJson: JSON.stringify(input.hostname),
+    localPort: String(input.localPort),
+  });
 }
 
 export function buildOAuthCallbackUrl(host: string, cell: string, callbackPath: string): string {

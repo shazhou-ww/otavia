@@ -1,0 +1,11 @@
+Otavia tunnel is configured.
+
+Public host: https://{{hostname}}
+Tunnel name: {{tunnelName}}
+
+Start tunnel: `cloudflared tunnel --config {{tunnelConfigPathJson}} run`
+
+Then start otavia dev with tunnel mode:
+
+`bun run otavia dev --tunnel --tunnel-config {{tunnelConfigPathJson}}`
+

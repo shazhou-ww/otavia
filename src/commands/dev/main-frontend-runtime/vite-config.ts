@@ -239,11 +239,12 @@ export function createMainFrontendViteConfig(options: ConfigOptions) {
   const workspaceRoot = resolvePath(options.workspaceRoot);
 
   const printBase = process.env.OTAVIA_VITE_PRINT_BASE_URL?.trim();
-  const plugins: Plugin[] = [mountAwareApiRewritePlugin()];
-  if (printBase) {
-    plugins.push(otaviaPublicBaseCliUrlsPlugin(printBase));
-  }
-  plugins.push(react());
+  const reactPlugins = react();
+  const plugins: Plugin[] = [
+    mountAwareApiRewritePlugin(),
+    ...(printBase ? [otaviaPublicBaseCliUrlsPlugin(printBase)] : []),
+    ...(Array.isArray(reactPlugins) ? reactPlugins : [reactPlugins]),
+  ];
 
   return defineConfig({
     plugins,

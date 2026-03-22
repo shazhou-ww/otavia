@@ -1,0 +1,6 @@
+tunnel: {{tunnelName}}
+credentials-file: {{credentialsFile}}
+ingress:
+  - hostname: {{hostnameJson}}
+    service: http://127.0.0.1:{{localPort}}
+  - service: http_status:404

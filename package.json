@@ -7,6 +7,12 @@
     "./dev/main-frontend-runtime/main-entry": "./dist/dev/main-frontend-runtime/main-entry.js",
     "./dev/main-frontend-runtime/vite-config": "./dist/dev/main-frontend-runtime/vite-config.js"
   },
+  "files": [
+    "assets",
+    "dist",
+    "src",
+    "package.json"
+  ],
   "bin": {
     "otavia": "src/cli.ts"
   },

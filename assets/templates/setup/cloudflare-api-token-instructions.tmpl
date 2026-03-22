@@ -1,0 +1,21 @@
+
+{{B}}{{C}}=== Cloudflare API Token ==={{R}}
+{{B}}{{Y}}[REQUIRED]{{R}} Token is required for automatic DNS setup.
+
+{{B}}Step 1{{R}}) Open: {{C}}https://dash.cloudflare.com/profile/api-tokens{{R}}
+{{B}}Step 2{{R}}) Create token:
+  - {{B}}{{Y}}[RECOMMENDED]{{R}} Use template {{B}}'Edit zone DNS'{{R}}
+  - {{B}}{{Y}}[FORM]{{R}} In the next form (after selecting the template), set:
+      * Permissions row #1: Zone / DNS / Edit
+      * Click '+ Add more' and add row #2: Zone / Zone / Read
+      * Zone Resources: default to Include -> All zones (or narrow to your dev zone)
+      * Client IP filtering: leave empty
+      * TTL: default no TTL (or set TTL per your security policy)
+  {{D}}- [ADVANCED] If creating custom token, permissions:{{R}}
+  {{D}}    * Zone -> Zone -> Read{{R}}
+  {{D}}    * Zone -> DNS -> Edit{{R}}
+  {{D}}    * Zone -> SSL and Certificates -> Edit (optional, future cert automation){{R}}
+
+{{B}}{{Y}}[IMPORTANT]{{R}}
+  - Zone Resources should include the dev zone you plan to use.
+  - We will use this token to auto-list zones and configure DNS records.
