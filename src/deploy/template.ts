@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { stringify } from "yaml";
 import type { OtaviaYaml } from "../config/otavia-yaml-schema.js";
 import type { CellConfig } from "../config/cell-yaml-schema.js";
-import { loadOtaviaYaml } from "../config/load-otavia-yaml.js";
+import { loadOtaviaYamlAt } from "../config/load-otavia-yaml.js";
 import { loadCellConfig } from "../config/load-cell-yaml.js";
 import { resolveCellDir } from "../config/resolve-cell-dir.js";
 import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../config/resolve-params.js";
@@ -124,8 +124,12 @@ function toApiPathPattern(mount: string, route: string): string {
  * Resources: each cell's tables -> DynamoDB, buckets -> S3, backend entries -> Lambda + API Gateway HTTP API,
  * frontend -> single S3 bucket + CloudFront path behaviors for single domain.
  */
-export function generateTemplate(rootDir: string, opts?: { certificateArn?: string }): string {
-  const otavia = loadOtaviaYaml(rootDir);
+export function generateTemplate(
+  monorepoRoot: string,
+  configDir: string,
+  opts?: { certificateArn?: string }
+): string {
+  const otavia = loadOtaviaYamlAt(configDir);
   const stackName = otavia.stackName;
   const domainHost = otavia.domain?.host ?? "";
   const bucketSuffix =
@@ -142,7 +146,7 @@ export function generateTemplate(rootDir: string, opts?: { certificateArn?: stri
 
   let needAppSyncEventApi = false;
   for (const cellEntry of otavia.cellsList) {
-    if (cellUsesAppSyncEvents(rootDir, cellEntry.package)) {
+    if (cellUsesAppSyncEvents(monorepoRoot, cellEntry.package)) {
       needAppSyncEventApi = true;
       break;
     }
@@ -157,12 +161,12 @@ export function generateTemplate(rootDir: string, opts?: { certificateArn?: stri
   }
 
   for (const cellEntry of otavia.cellsList) {
-    const cellDir = resolveCellDir(rootDir, cellEntry.package);
+    const cellDir = resolveCellDir(monorepoRoot, cellEntry.package);
     if (!existsSync(resolve(cellDir, "cell.yaml"))) {
       continue;
     }
     const config = loadCellConfig(cellDir);
-    const envMap = loadEnvForCell(rootDir, cellDir, { stage: "deploy" });
+    const envMap = loadEnvForCell(configDir, cellDir, { stage: "deploy" });
     const merged = mergeParams(otavia.params, cellEntry.params) as Record<string, unknown>;
     assertDeclaredParamsProvided(config.params, merged, cellEntry.mount);
     const resolved = resolveParams(merged, envMap, { onMissingParam: "throw" });

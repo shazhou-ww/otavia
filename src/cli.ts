@@ -10,14 +10,15 @@ import { typecheckCommand } from "./commands/typecheck.js";
 import { lintCommand } from "./commands/lint.js";
 import { deployCommand } from "./commands/deploy.js";
 import { listCellsCommand } from "./commands/cell.js";
-import { initCommand } from "./commands/init.js";
+import { initCommand, resolvePackageScopeForInit } from "./commands/init.js";
+import { getOtaviaPackageVersion } from "./package-version.js";
 
 const program = new Command();
 
 program
   .name("otavia")
   .description("CLI for Otavia stack")
-  .version("0.1.0");
+  .version(getOtaviaPackageVersion());
 
 const placeholderAction = async () => {
   console.log("Not implemented");
@@ -35,17 +36,36 @@ program.hook("preAction", (_thisCommand, actionCommand) => {
 
 program
   .command("init")
-  .description("Create otavia.yaml and a starter cell under cells/app")
-  .option("--force", "Overwrite existing otavia.yaml and cells/app/cell.yaml")
+  .description(
+    "Scaffold monorepo: workspaces, apps/main (entry + otavia.yaml), cells/* at repo root, root scripts"
+  )
+  .option(
+    "--force",
+    "Overwrite existing scaffold (apps/main, cells/hello, package.json files, .env)"
+  )
   .option("--stack-name <name>", "CloudFormation stack name (default: current directory name)")
   .option("--domain <host>", "Primary domain host (default: example.com)")
+  .option(
+    "--scope <scope>",
+    'npm scope for @scope/main and @scope/<cell> (e.g. acme or @acme); omit to prompt, or use directory name in non-TTY'
+  )
   .action(
-    (_args: unknown, cmd: { opts: () => { force?: boolean; stackName?: string; domain?: string } }) => {
+    async (
+      _args: unknown,
+      cmd: {
+        opts: () => { force?: boolean; stackName?: string; domain?: string; scope?: string };
+      }
+    ) => {
       const opts = cmd.opts();
+      const packageScope = await resolvePackageScopeForInit({
+        cwd: process.cwd(),
+        explicitScope: opts.scope,
+      });
       initCommand(process.cwd(), {
         force: opts.force,
         stackName: opts.stackName,
         domain: opts.domain,
+        packageScope,
       });
     }
   );

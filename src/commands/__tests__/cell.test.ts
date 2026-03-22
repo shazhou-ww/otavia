@@ -9,7 +9,17 @@ describe("listCellsCommand", () => {
     const root = mkdtempSync(join(tmpdir(), "otavia-cell-list-"));
     try {
       writeFileSync(
-        join(root, "otavia.yaml"),
+        join(root, "package.json"),
+        JSON.stringify({
+          name: "cell-test-ws",
+          private: true,
+          workspaces: ["apps/*", "cells/*"],
+        }),
+        "utf-8"
+      );
+      mkdirSync(join(root, "apps", "main"), { recursive: true });
+      writeFileSync(
+        join(root, "apps", "main", "otavia.yaml"),
         `
 stackName: test-stack
 domain:

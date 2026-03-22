@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { homedir } from "node:os";
+import { loadOtaviaYaml } from "../../config/load-otavia-yaml.js";
 import concurrently from "concurrently";
 import { parse as parseYaml } from "yaml";
 
@@ -41,10 +42,11 @@ export function normalizeTunnelPublicBaseUrl(hostOrUrl: string): string {
   return `https://${trimmed}`;
 }
 
-export function defaultTunnelConfigPath(rootDir: string): string {
+/** @param otaviaConfigDir Directory containing `otavia.yaml` (e.g. `apps/main`) */
+export function defaultTunnelConfigPath(otaviaConfigDir: string): string {
   const fromEnv = process.env.OTAVIA_TUNNEL_CONFIG?.trim();
   if (fromEnv) return fromEnv;
-  const projectPath = resolve(rootDir, ".otavia", "tunnel", "config.yml");
+  const projectPath = resolve(otaviaConfigDir, ".otavia", "tunnel", "config.yml");
   if (existsSync(projectPath)) return projectPath;
   const globalConfig = resolve(homedir(), ".config", "otavia", "config.yml");
   if (existsSync(globalConfig)) return globalConfig;
@@ -85,7 +87,8 @@ export function buildCloudflaredTunnelCommand(
 }
 
 export async function startTunnel(
-  rootDir: string,
+  monorepoRoot: string,
+  configDir: string,
   options?: {
     tunnelConfigPath?: string;
     tunnelHost?: string;
@@ -93,20 +96,19 @@ export async function startTunnel(
     tunnelProtocol?: string;
   }
 ): Promise<TunnelHandle> {
-  const tunnelConfigPath = options?.tunnelConfigPath ?? defaultTunnelConfigPath(rootDir);
+  const tunnelConfigPath = options?.tunnelConfigPath ?? defaultTunnelConfigPath(configDir);
   if (!existsSync(tunnelConfigPath)) {
     console.log("[tunnel] No tunnel config found. Running auto-setup...");
     // Set OTAVIA_TUNNEL_DEV_ROOT from otavia.yaml dns.zone if not already set
-    const { loadOtaviaYaml } = await import("../../config/load-otavia-yaml.js");
     if (!process.env.OTAVIA_TUNNEL_DEV_ROOT) {
-      const otavia = loadOtaviaYaml(rootDir);
+      const otavia = loadOtaviaYaml(monorepoRoot);
       const zone = otavia.domain?.dns?.zone;
       if (zone) {
         process.env.OTAVIA_TUNNEL_DEV_ROOT = zone;
       }
     }
     const { setupCommand } = await import("../setup.js");
-    await setupCommand(rootDir, { tunnel: true });
+    await setupCommand(monorepoRoot, { tunnel: true });
     if (!existsSync(tunnelConfigPath)) {
       throw new Error(
         `Tunnel config not found after auto-setup: ${tunnelConfigPath}. Run setup manually or pass --tunnel-config.`
@@ -142,7 +144,7 @@ export async function startTunnel(
       {
         command: tunnelCommand,
         name: "tunnel",
-        cwd: rootDir,
+        cwd: monorepoRoot,
         env: { ...process.env },
       },
     ],

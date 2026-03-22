@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { loadOtaviaYaml } from "../config/load-otavia-yaml.js";
+import { loadOtaviaYamlAt } from "../config/load-otavia-yaml.js";
+import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace.js";
 import { resolveCellDir } from "../config/resolve-cell-dir.js";
 
 /**
@@ -9,12 +10,12 @@ import { resolveCellDir } from "../config/resolve-cell-dir.js";
  * Uses bun x tsc so each cell's node_modules/.bin/tsc is used when present.
  */
 export async function typecheckCommand(rootDir: string): Promise<void> {
-  const root = path.resolve(rootDir);
-  const otavia = loadOtaviaYaml(root);
+  const { monorepoRoot, configDir } = resolveOtaviaWorkspacePaths(rootDir);
+  const otavia = loadOtaviaYamlAt(configDir);
   let failed = false;
 
   for (const entry of otavia.cellsList) {
-    const cellDir = resolveCellDir(root, entry.package);
+    const cellDir = resolveCellDir(monorepoRoot, entry.package);
     if (!fs.existsSync(path.join(cellDir, "cell.yaml"))) {
       console.warn(`Skipping ${entry.mount}: cell not found`);
       continue;

@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { relative, resolve } from "node:path";
-import { loadOtaviaYaml } from "../../config/load-otavia-yaml.js";
+import { createRequire } from "node:module";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, relative, resolve } from "node:path";
+import { loadOtaviaYamlAt } from "../../config/load-otavia-yaml.js";
 import { loadCellConfig } from "../../config/load-cell-yaml.js";
 import type { CellConfig } from "../../config/cell-yaml-schema.js";
 import { resolveCellDir } from "../../config/resolve-cell-dir.js";
@@ -65,13 +66,20 @@ import { bootMainFrontend } from "otavia/dev/main-frontend-runtime/main-entry";
 void bootMainFrontend(rootRedirectMount, mounts, mountLoaders);
 `;
 
-const MAIN_FRONTEND_VITE_CONFIG_TS = `import { createMainFrontendViteConfig } from "otavia/dev/main-frontend-runtime/vite-config";
+const MAIN_FRONTEND_VITE_CONFIG_TS = `import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { mergeConfig } from "vite";
+import { createMainFrontendViteConfig } from "otavia/dev/main-frontend-runtime/vite-config";
 
 const backendPort = process.env.GATEWAY_BACKEND_PORT;
 const vitePort = Number.parseInt(process.env.VITE_PORT ?? "", 10);
-const generatedConfigPath = new URL("./src/generated/main-dev-config.json", import.meta.url);
+const frontendDir = process.env.OTAVIA_MAIN_FRONTEND_DIR;
 const packageRoot = process.env.OTAVIA_MAIN_ROOT ?? process.cwd();
+const workspaceRoot = process.env.OTAVIA_WORKSPACE_ROOT ?? process.cwd();
 
+if (!frontendDir) {
+  throw new Error("Missing OTAVIA_MAIN_FRONTEND_DIR");
+}
 if (!backendPort) {
   throw new Error("Missing GATEWAY_BACKEND_PORT");
 }
@@ -79,11 +87,38 @@ if (!Number.isFinite(vitePort)) {
   throw new Error("Missing VITE_PORT");
 }
 
-export default createMainFrontendViteConfig({
+const generatedConfigPath = pathToFileURL(join(frontendDir, "src", "generated", "main-dev-config.json"));
+
+const base = createMainFrontendViteConfig({
   generatedConfigPath,
   packageRoot,
+  workspaceRoot,
   backendPort,
   vitePort,
+});
+
+const rawAliases = process.env.OTAVIA_VITE_RESOLVE_ALIASES ?? "";
+let resolveAlias: Record<string, string> = {};
+if (rawAliases) {
+  try {
+    const parsed = JSON.parse(rawAliases) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      resolveAlias = Object.fromEntries(
+        Object.entries(parsed as Record<string, unknown>).filter(
+          ([, v]) => typeof v === "string"
+        )
+      ) as Record<string, string>;
+    }
+  } catch {
+    resolveAlias = {};
+  }
+}
+
+export default mergeConfig(base, {
+  root: frontendDir,
+  resolve: {
+    alias: resolveAlias,
+  },
 });
 `;
 
@@ -273,6 +308,79 @@ export function deriveFrontendModuleProxySpecs(
   return specs;
 }
 
+function tryResolvePackageDir(pkgJsonPath: string, packageName: string): string | null {
+  try {
+    const req = createRequire(pkgJsonPath);
+    const resolved = req.resolve(`${packageName}/package.json`);
+    return dirname(resolved).replace(/\\/g, "/");
+  } catch {
+    return null;
+  }
+}
+
+function packageJsonLookupRoots(
+  monorepoRoot: string,
+  cellsWithFrontend: { packageName: string }[]
+): string[] {
+  const roots = [resolve(monorepoRoot, "package.json")];
+  for (const c of cellsWithFrontend) {
+    roots.push(resolve(resolveCellDir(monorepoRoot, c.packageName), "package.json"));
+  }
+  return roots;
+}
+
+function resolveNamedPackageDirFromWorkspace(
+  monorepoRoot: string,
+  cellsWithFrontend: { packageName: string }[],
+  packageName: string
+): string | null {
+  for (const pkgJson of packageJsonLookupRoots(monorepoRoot, cellsWithFrontend)) {
+    if (!existsSync(pkgJson)) continue;
+    const dir = tryResolvePackageDir(pkgJson, packageName);
+    if (dir) return dir;
+  }
+  return null;
+}
+
+function resolveCellFrontendExportPath(cellDir: string): string | null {
+  const pkgPath = resolve(cellDir, "package.json");
+  if (!existsSync(pkgPath)) return null;
+  let pkg: { exports?: Record<string, unknown> };
+  try {
+    pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as { exports?: Record<string, unknown> };
+  } catch {
+    return null;
+  }
+  const ex = pkg.exports?.["./frontend"];
+  let rel: string | null = null;
+  if (typeof ex === "string") rel = ex;
+  else if (ex && typeof ex === "object") {
+    const o = ex as { import?: string; default?: string };
+    rel = typeof o.import === "string" ? o.import : typeof o.default === "string" ? o.default : null;
+  }
+  if (!rel) return null;
+  return resolve(cellDir, rel).replace(/\\/g, "/");
+}
+
+function buildViteResolveAliases(
+  monorepoRoot: string,
+  cellsWithFrontend: { packageName: string }[]
+): Record<string, string> {
+  const aliases: Record<string, string> = {};
+  for (const c of cellsWithFrontend) {
+    const cellDir = resolveCellDir(monorepoRoot, c.packageName);
+    const abs = resolveCellFrontendExportPath(cellDir);
+    if (abs) {
+      aliases[`${c.packageName}/frontend`] = abs;
+    }
+  }
+  const reactDir = resolveNamedPackageDirFromWorkspace(monorepoRoot, cellsWithFrontend, "react");
+  const reactDomDir = resolveNamedPackageDirFromWorkspace(monorepoRoot, cellsWithFrontend, "react-dom");
+  if (reactDir) aliases.react = reactDir;
+  if (reactDomDir) aliases["react-dom"] = reactDomDir;
+  return aliases;
+}
+
 /**
  * Start main frontend Vite dev server (single root MPA shell):
  * - root is apps/main/.otavia/dev/main-frontend
@@ -281,13 +389,14 @@ export function deriveFrontendModuleProxySpecs(
  * If no cell has frontend, returns a no-op stop.
  */
 export async function startViteDev(
-  rootDir: string,
+  monorepoRoot: string,
+  configDir: string,
   backendPort: number,
   vitePort: number,
   publicBaseUrl?: string
 ): Promise<ViteDevHandle> {
-  const root = resolve(rootDir);
-  const otavia = loadOtaviaYaml(root);
+  const root = resolve(configDir);
+  const otavia = loadOtaviaYamlAt(configDir);
   const cellsWithFrontend: {
     mount: string;
     packageName: string;
@@ -297,7 +406,7 @@ export async function startViteDev(
   }[] = [];
 
   for (const entry of otavia.cellsList) {
-    const cellDir = resolveCellDir(root, entry.package);
+    const cellDir = resolveCellDir(monorepoRoot, entry.package);
     const cellYamlPath = resolve(cellDir, "cell.yaml");
     if (!existsSync(cellYamlPath)) continue;
     const config = loadCellConfig(cellDir);
@@ -343,8 +452,10 @@ ${cellsWithFrontend
 } as Record<string, () => Promise<unknown>>;
 `;
   writeFileSync(generatedLoadersPath, loadersSource, "utf-8");
-  const generatedDevConfig = buildMainDevGeneratedConfig(cellsWithFrontend, backendPort, root);
+  const generatedDevConfig = buildMainDevGeneratedConfig(cellsWithFrontend, backendPort, monorepoRoot);
   writeFileSync(generatedDevConfigPath, JSON.stringify(generatedDevConfig, null, 2), "utf-8");
+
+  const viteResolveAliases = buildViteResolveAliases(monorepoRoot, cellsWithFrontend);
 
   const env = {
     ...process.env,
@@ -353,11 +464,18 @@ ${cellsWithFrontend
     VITE_PORT: String(vitePort),
     GATEWAY_BACKEND_PORT: String(backendPort),
     OTAVIA_MAIN_ROOT: root,
+    /** Bun/npm workspace root: Vite resolves @scope/cell and allows fs under this path. */
+    OTAVIA_WORKSPACE_ROOT: monorepoRoot,
+    /** Absolute path so vite.config does not rely on import.meta.url (Vite may load config from a temp file). */
+    OTAVIA_MAIN_FRONTEND_DIR: frontendRoot,
+    /** JSON map: workspace subpath + react/react-dom -> absolute dirs for Vite optimizeDeps + imports. */
+    OTAVIA_VITE_RESOLVE_ALIASES: JSON.stringify(viteResolveAliases),
   };
 
   const configPath = resolve(frontendRoot, "vite.config.ts");
+  // cwd = monorepo root so Node resolves the \`otavia\` package from hoisted node_modules. Project root is set via mergeConfig({ root }).
   const child = Bun.spawn(["bun", "x", "vite", "--config", configPath], {
-    cwd: frontendRoot,
+    cwd: monorepoRoot,
     env,
     stdio: ["ignore", "inherit", "inherit"],
   });

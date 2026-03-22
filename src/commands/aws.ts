@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace.js";
 
 /** Parse .env file content into a key-value map. */
 function parseEnvFile(content: string): Record<string, string> {
@@ -24,11 +25,12 @@ function parseEnvFile(content: string): Record<string, string> {
 }
 
 /**
- * Load AWS_PROFILE from rootDir/.env only.
+ * Load AWS_PROFILE from the stack app `.env` (e.g. apps/main/.env in a monorepo).
  * Returns process.env.AWS_PROFILE ?? envMap.AWS_PROFILE ?? "default".
  */
-export function getAwsProfile(rootDir: string): string {
-  const envPath = resolve(rootDir, ".env");
+export function getAwsProfile(startDir: string): string {
+  const { configDir } = resolveOtaviaWorkspacePaths(startDir);
+  const envPath = resolve(configDir, ".env");
   let envMap: Record<string, string> = {};
   if (existsSync(envPath)) {
     envMap = parseEnvFile(readFileSync(envPath, "utf-8"));

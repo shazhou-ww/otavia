@@ -1,11 +1,11 @@
 {
   "name": "otavia",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI for Otavia stack (deploy, dev, local tooling)",
   "type": "module",
   "exports": {
-    "./dev/main-frontend-runtime/main-entry": "./src/commands/dev/main-frontend-runtime/main-entry.ts",
-    "./dev/main-frontend-runtime/vite-config": "./src/commands/dev/main-frontend-runtime/vite-config.ts"
+    "./dev/main-frontend-runtime/main-entry": "./dist/dev/main-frontend-runtime/main-entry.js",
+    "./dev/main-frontend-runtime/vite-config": "./dist/dev/main-frontend-runtime/vite-config.js"
   },
   "bin": {
     "otavia": "src/cli.ts"
@@ -13,7 +13,11 @@
   "scripts": {
     "dev": "bun run src/cli.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test src/"
+    "test": "bun test src/",
+    "build:runtime": "bun run scripts/build-runtime-entries.ts",
+    "prepack": "bun run build:runtime",
+    "prepare": "bun run build:runtime",
+    "smoke:init-dev": "bun run scripts/smoke-init-dev.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.x",

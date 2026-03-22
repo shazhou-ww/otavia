@@ -4,9 +4,17 @@ import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { checkAwsCredentials } from "../aws-auth.js";
 
+const minimalOtaviaYaml = `stackName: test
+domain:
+  host: h.example.com
+cells:
+  a: "@otavia/a"
+`;
+
 describe("checkAwsCredentials", () => {
-  test("uses AWS_PROFILE from root .env when process env missing", async () => {
+  test("uses AWS_PROFILE from stack .env when process env missing", async () => {
     const rootDir = mkdtempSync(join(tmpdir(), "otavia-aws-auth-"));
+    writeFileSync(join(rootDir, "otavia.yaml"), minimalOtaviaYaml, "utf-8");
     writeFileSync(join(rootDir, ".env"), "AWS_PROFILE=my-sso-profile\n");
 
     const calls: Array<{ args: string[]; env: Record<string, string | undefined> }> = [];
@@ -23,6 +31,7 @@ describe("checkAwsCredentials", () => {
 
   test("reports invalid credentials when sts check fails", async () => {
     const rootDir = mkdtempSync(join(tmpdir(), "otavia-aws-auth-"));
+    writeFileSync(join(rootDir, "otavia.yaml"), minimalOtaviaYaml, "utf-8");
     writeFileSync(join(rootDir, ".env"), "AWS_PROFILE=expired-profile\n");
 
     const result = await checkAwsCredentials(rootDir, async () => 255);

@@ -1,8 +1,9 @@
-import { resolve } from "node:path";
 import { checkAwsCredentials } from "./aws-auth.js";
 import { runGatewayDev } from "./dev/gateway.js";
 import { startViteDev } from "./dev/vite-dev.js";
 import { startTunnel } from "./dev/tunnel.js";
+import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace.js";
+import { getOtaviaPackageVersion } from "../package-version.js";
 import { loadEnvForCell } from "../utils/env.js";
 import { resolvePortsFromEnv } from "../config/ports.js";
 
@@ -21,26 +22,40 @@ export function resolveDevTunnelEnabled(options?: { tunnel?: boolean }): boolean
   return options?.tunnel ?? false;
 }
 
+function envFlagTrue(name: string): boolean {
+  const v = process.env[name]?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
 /**
  * Dev command: validate otavia.yaml, start backend gateway, then Vite dev server.
  * When OTAVIA_DEV_GATEWAY_ONLY=1 (e.g. for e2e), only run gateway with PORT and optional
  * DYNAMODB_ENDPOINT/S3_ENDPOINT overrides; do not start Vite.
+ * When OTAVIA_SKIP_AWS_CHECK=1, skip STS check (local UI/gateway only; deploy still needs AWS).
  * On SIGINT/SIGTERM stops and exits.
  */
 export async function devCommand(
   rootDir: string,
   options?: { tunnel?: boolean; tunnelHost?: string; tunnelConfig?: string; tunnelProtocol?: string }
 ): Promise<void> {
-  const root = resolve(rootDir);
-  const aws = await checkAwsCredentials(root);
-  if (!aws.ok) {
-    console.error(
-      `AWS credentials are invalid or expired for profile "${aws.profile}".`
-    );
-    console.error("Run: bun run otavia aws login");
-    process.exit(1);
+  console.error(
+    `[otavia] CLI v${getOtaviaPackageVersion()} — path debug: OTAVIA_DEBUG_RESOLVE=1; unreleased fixes: bun link otavia from this repo`
+  );
+  const { monorepoRoot, configDir } = resolveOtaviaWorkspacePaths(rootDir);
+  if (!envFlagTrue("OTAVIA_SKIP_AWS_CHECK")) {
+    const aws = await checkAwsCredentials(configDir);
+    if (!aws.ok) {
+      console.error(
+        `AWS credentials are invalid or expired for profile "${aws.profile}".`
+      );
+      console.error("Run: bun run otavia aws login");
+      console.error("(Local-only: OTAVIA_SKIP_AWS_CHECK=1 skips this check.)");
+      process.exit(1);
+    }
+  } else {
+    console.warn("[otavia] OTAVIA_SKIP_AWS_CHECK: skipping AWS STS check (not for production deploy).");
   }
-  const stageEnv = loadEnvForCell(root, root, { stage: "dev" });
+  const stageEnv = loadEnvForCell(configDir, configDir, { stage: "dev" });
   const ports = resolvePortsFromEnv("dev", { ...stageEnv, ...process.env });
   const backendPort = ports.backend;
   const vitePort = ports.frontend;
@@ -58,7 +73,7 @@ export async function devCommand(
   let publicBaseUrl: string | undefined;
   const tunnelEnabled = resolveDevTunnelEnabled(options);
   if (tunnelEnabled) {
-    tunnelHandle = await startTunnel(root, {
+    tunnelHandle = await startTunnel(monorepoRoot, configDir, {
       tunnelConfigPath: options?.tunnelConfig,
       tunnelHost: options?.tunnelHost,
       tunnelProtocol: options?.tunnelProtocol,
@@ -73,7 +88,7 @@ export async function devCommand(
     gatewayOnly,
     vitePort,
   });
-  const server = await runGatewayDev(root, backendPort, overrides, {
+  const server = await runGatewayDev(monorepoRoot, configDir, backendPort, overrides, {
     publicBaseUrl: effectivePublicBaseUrl,
     dynamodbPort: ports.dynamodb,
     minioPort: ports.minio,
@@ -93,7 +108,7 @@ export async function devCommand(
     await new Promise(() => {});
   }
 
-  const viteHandle = await startViteDev(root, backendPort, vitePort, effectivePublicBaseUrl);
+  const viteHandle = await startViteDev(monorepoRoot, configDir, backendPort, vitePort, effectivePublicBaseUrl);
 
   const cleanup = () => {
     tunnelHandle?.stop();

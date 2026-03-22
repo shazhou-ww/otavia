@@ -2,7 +2,8 @@ import { createInterface } from "node:readline";
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { build } from "esbuild";
-import { loadOtaviaYaml } from "../config/load-otavia-yaml.js";
+import { loadOtaviaYamlAt } from "../config/load-otavia-yaml.js";
+import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace.js";
 import { loadCellConfig } from "../config/load-cell-yaml.js";
 import { resolveCellDir } from "../config/resolve-cell-dir.js";
 import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../config/resolve-params.js";
@@ -89,15 +90,15 @@ async function stackExists(
 }
 
 /** Load otavia + all cells and resolve params for cloud; throws if missing !Env/!Secret. */
-function loadOtaviaAndResolveParams(rootDir: string) {
-  const otavia = loadOtaviaYaml(rootDir);
+function loadOtaviaAndResolveParams(monorepoRoot: string, configDir: string) {
+  const otavia = loadOtaviaYamlAt(configDir);
   const cells: { mount: string; cellDir: string; config: ReturnType<typeof loadCellConfig> }[] = [];
 
   for (const entry of otavia.cellsList) {
-    const cellDir = resolveCellDir(rootDir, entry.package);
+    const cellDir = resolveCellDir(monorepoRoot, entry.package);
     if (!existsSync(resolve(cellDir, "cell.yaml"))) continue;
     const config = loadCellConfig(cellDir);
-    const envMap = loadEnvForCell(rootDir, cellDir, { stage: "deploy" });
+    const envMap = loadEnvForCell(configDir, cellDir, { stage: "deploy" });
     const merged = mergeParams(otavia.params, entry.params) as Record<string, unknown>;
     assertDeclaredParamsProvided(config.params, merged, entry.mount);
     resolveParams(merged, envMap, { onMissingParam: "throw" });
@@ -113,11 +114,11 @@ function loadOtaviaAndResolveParams(rootDir: string) {
  * Returns map: "mount/entryKey" -> hash (first 12 chars SHA256 of zip).
  */
 async function buildBackends(
-  rootDir: string,
+  configDir: string,
   cells: { mount: string; cellDir: string; config: ReturnType<typeof loadCellConfig> }[]
 ): Promise<Map<string, string>> {
   const hashes = new Map<string, string>();
-  const buildRoot = resolve(rootDir, OTAVIA_BUILD);
+  const buildRoot = resolve(configDir, OTAVIA_BUILD);
 
   for (const { mount, cellDir, config } of cells) {
     if (!config.backend?.entries) continue;
@@ -157,12 +158,12 @@ async function buildBackends(
  * with outDir .otavia/dist/<mount> and base /<mount>/.
  */
 async function buildFrontends(
-  rootDir: string,
+  configDir: string,
   cells: { mount: string; cellDir: string; config: ReturnType<typeof loadCellConfig> }[]
 ): Promise<void> {
   for (const { mount, cellDir, config } of cells) {
     if (!config.frontend) continue;
-    const outDir = resolve(rootDir, OTAVIA_DIST, mount);
+    const outDir = resolve(configDir, OTAVIA_DIST, mount);
     const frontendDir = resolve(cellDir, config.frontend.dir ?? "frontend");
     mkdirSync(outDir, { recursive: true });
 
@@ -208,9 +209,10 @@ export async function deployCommand(
   rootDir: string,
   options?: { yes?: boolean }
 ): Promise<void> {
+  const { monorepoRoot, configDir } = resolveOtaviaWorkspacePaths(rootDir);
   const awsEnv: Record<string, string | undefined> = {};
   try {
-    const rootEnv = resolve(rootDir, ".env");
+    const rootEnv = resolve(configDir, ".env");
     if (existsSync(rootEnv)) {
       const content = await Bun.file(rootEnv).text();
       for (const line of content.split("\n")) {
@@ -241,11 +243,11 @@ export async function deployCommand(
     process.exit(1);
   }
 
-  let otavia: ReturnType<typeof loadOtaviaYaml>;
+  let otavia: ReturnType<typeof loadOtaviaYamlAt>;
   let cells: { mount: string; cellDir: string; config: ReturnType<typeof loadCellConfig> }[];
 
   try {
-    const loaded = loadOtaviaAndResolveParams(rootDir);
+    const loaded = loadOtaviaAndResolveParams(monorepoRoot, configDir);
     otavia = loaded.otavia;
     cells = loaded.cells;
   } catch (err) {
@@ -259,7 +261,7 @@ export async function deployCommand(
   console.log("\n=== Building backend ===");
   let lambdaHashes: Map<string, string>;
   try {
-    lambdaHashes = await buildBackends(rootDir, cells);
+    lambdaHashes = await buildBackends(configDir, cells);
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     process.exit(1);
@@ -269,7 +271,7 @@ export async function deployCommand(
   if (hasFrontend) {
     console.log("\n=== Building frontend ===");
     try {
-      await buildFrontends(rootDir, cells);
+      await buildFrontends(configDir, cells);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exit(1);
@@ -286,7 +288,7 @@ export async function deployCommand(
 
   console.log("\n=== Uploading Lambda zips ===");
   const s3KeyReplacements: { placeholder: string; s3Key: string }[] = [];
-  const buildRoot = resolve(rootDir, OTAVIA_BUILD);
+  const buildRoot = resolve(configDir, OTAVIA_BUILD);
 
   for (const { mount, config } of cells) {
     if (!config.backend?.entries) continue;
@@ -345,7 +347,7 @@ export async function deployCommand(
   console.log("\n=== Generating CloudFormation template ===");
   let template: string;
   try {
-    template = generateTemplate(rootDir, { certificateArn });
+    template = generateTemplate(monorepoRoot, configDir, { certificateArn });
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     process.exit(1);
@@ -357,7 +359,7 @@ export async function deployCommand(
     template = template.replace(new RegExp(`S3Key: ${escaped}`), `S3Key: ${s3Key}`);
   }
 
-  const cfnDir = resolve(rootDir, ".otavia");
+  const cfnDir = resolve(configDir, ".otavia");
   mkdirSync(cfnDir, { recursive: true });
   const packagedPath = resolve(cfnDir, "cfn-packaged.yaml");
   writeFileSync(packagedPath, template);
@@ -402,7 +404,7 @@ export async function deployCommand(
       ...regionArgs,
     ],
     {
-      cwd: rootDir,
+      cwd: monorepoRoot,
       env: { ...process.env, ...awsEnv },
       stdout: "inherit",
       stderr: "inherit",
@@ -446,7 +448,7 @@ export async function deployCommand(
   if (frontendBucket && hasFrontend) {
     console.log("\n=== Uploading frontend ===");
     for (const { mount } of cells) {
-      const srcDir = resolve(rootDir, OTAVIA_DIST, mount);
+      const srcDir = resolve(configDir, OTAVIA_DIST, mount);
       if (!existsSync(srcDir)) continue;
       console.log(`  Syncing ${mount} → s3://${frontendBucket}/${mount}/`);
       const { exitCode: syncCode } = await awsCli(

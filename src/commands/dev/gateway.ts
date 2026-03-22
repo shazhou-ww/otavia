@@ -4,9 +4,10 @@ import { pathToFileURL } from "node:url";
 import { Hono } from "hono";
 import type { OtaviaYaml } from "../../config/otavia-yaml-schema.js";
 import type { CellConfig } from "../../config/cell-yaml-schema.js";
-import { loadOtaviaYaml } from "../../config/load-otavia-yaml.js";
+import { loadOtaviaYamlAt } from "../../config/load-otavia-yaml.js";
 import { loadCellConfig } from "../../config/load-cell-yaml.js";
 import { resolveCellDir } from "../../config/resolve-cell-dir.js";
+import { logOtaviaResolve } from "../../config/resolve-otavia-workspace.js";
 import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../../config/resolve-params.js";
 import { loadEnvForCell } from "../../utils/env.js";
 import { tablePhysicalName, bucketPhysicalName } from "../../config/resource-names.js";
@@ -110,7 +111,8 @@ export function applyResourceNameEnvVars(cells: GatewayCellInfo[], stackName: st
 }
 
 async function discoverCells(
-  rootDir: string,
+  monorepoRoot: string,
+  configDir: string,
   otavia: OtaviaYaml,
   backendPort: number,
   publicBaseUrl?: string
@@ -118,9 +120,23 @@ async function discoverCells(
   const firstMount = otavia.cellsList[0]?.mount ?? "";
   const cells: GatewayCellInfo[] = [];
 
+  logOtaviaResolve("discoverCells", {
+    monorepoRoot,
+    configDir,
+    processCwd: process.cwd(),
+    mounts: otavia.cellsList.map((e) => e.mount),
+  });
+
   for (const entry of otavia.cellsList) {
-    const cellDir = resolveCellDir(rootDir, entry.package);
+    const cellDir = resolveCellDir(monorepoRoot, entry.package);
     const cellYamlPath = resolve(cellDir, "cell.yaml");
+    logOtaviaResolve("cell path", {
+      mount: entry.mount,
+      package: entry.package,
+      cellDir,
+      cellYamlPath,
+      cellYamlExists: existsSync(cellYamlPath),
+    });
     if (!existsSync(cellYamlPath)) {
       console.warn(`[gateway] Skipping "${entry.mount}" (${entry.package}): cell.yaml not found at ${cellYamlPath}`);
       continue;
@@ -135,7 +151,7 @@ async function discoverCells(
     const config = loadCellConfig(cellDir);
     const merged = mergeParams(otavia.params, entry.params);
     assertDeclaredParamsProvided(config.params, merged, entry.mount);
-    const envMap = loadEnvForCell(rootDir, cellDir, { stage: "dev" });
+    const envMap = loadEnvForCell(configDir, cellDir, { stage: "dev" });
     if (!envMap.SSO_BASE_URL?.trim()) {
       envMap.SSO_BASE_URL = resolveGatewaySsoBaseUrl(undefined, backendPort, firstMount, publicBaseUrl);
     }
@@ -157,7 +173,6 @@ async function discoverCells(
 }
 
 async function ensureDockerResources(
-  rootDir: string,
   otavia: OtaviaYaml,
   cells: GatewayCellInfo[],
   options: { dynamodbPort: number; minioPort: number }
@@ -297,15 +312,18 @@ export type GatewayServer = { stop: () => void };
  * overrides are provided (e.g. for e2e: caller already started Docker and passes endpoints).
  */
 export async function runGatewayDev(
-  rootDir: string,
+  monorepoRoot: string,
+  configDir: string,
   backendPort: number,
   overrides?: { dynamoEndpoint?: string; s3Endpoint?: string },
   options?: { publicBaseUrl?: string; dynamodbPort: number; minioPort: number }
 ): Promise<GatewayServer> {
-  const otavia = loadOtaviaYaml(rootDir);
-  const cells = await discoverCells(rootDir, otavia, backendPort, options?.publicBaseUrl);
+  const otavia = loadOtaviaYamlAt(configDir);
+  const cells = await discoverCells(monorepoRoot, configDir, otavia, backendPort, options?.publicBaseUrl);
   if (cells.length === 0) {
-    throw new Error("No cells found");
+    throw new Error(
+      'No cells found. Re-run with OTAVIA_DEBUG_RESOLVE=1 to print monorepoRoot, configDir, and each cell path.'
+    );
   }
   applyResourceNameEnvVars(cells, otavia.stackName);
 
@@ -318,7 +336,7 @@ export async function runGatewayDev(
     if (!options) {
       throw new Error("Missing docker port options for local resources.");
     }
-    const resources = await ensureDockerResources(rootDir, otavia, cells, {
+    const resources = await ensureDockerResources(otavia, cells, {
       dynamodbPort: options.dynamodbPort,
       minioPort: options.minioPort,
     });

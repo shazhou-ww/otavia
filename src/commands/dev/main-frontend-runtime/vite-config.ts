@@ -102,7 +102,10 @@ function isGlobalWellKnownPath(pathname: string): boolean {
 
 type ConfigOptions = {
   generatedConfigPath: URL;
+  /** apps/main (stack dir): used for proxy @fs paths relative to stack */
   packageRoot: string;
+  /** Bun/npm workspace root: node_modules + cells/; required for resolving @scope/pkg and server.fs.allow */
+  workspaceRoot: string;
   backendPort: string;
   vitePort: number;
 };
@@ -196,15 +199,24 @@ export function createMainFrontendViteConfig(options: ConfigOptions) {
     }
   }
 
+  const workspaceRoot = resolvePath(options.workspaceRoot);
+
   return defineConfig({
     plugins: [mountAwareApiRewritePlugin(), react()],
-    resolve: { conditions: ["bun"], dedupe: ["react", "react-dom"] },
+    resolve: {
+      // "bun" alone breaks react and many packages' exports; keep browser/import for workspace + React.
+      conditions: ["import", "module", "browser", "development", "production", "default", "bun"],
+      dedupe: ["react", "react-dom"],
+    },
     server: {
       port: options.vitePort,
       host: "0.0.0.0",
       allowedHosts: true,
       strictPort: true,
       proxy,
+      fs: {
+        allow: [workspaceRoot],
+      },
     },
   });
 }

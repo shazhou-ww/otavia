@@ -2,7 +2,8 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 import { homedir, hostname as osHostname } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
-import { loadOtaviaYaml } from "../config/load-otavia-yaml.js";
+import { loadOtaviaYamlAt } from "../config/load-otavia-yaml.js";
+import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace.js";
 import { loadCellConfig } from "../config/load-cell-yaml.js";
 import { resolveCellDir } from "../config/resolve-cell-dir.js";
 import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../config/resolve-params.js";
@@ -66,7 +67,7 @@ function collectRefKeys(params: Record<string, unknown>): string[] {
 
 /**
  * Setup command: check bun, otavia.yaml, each cell's cell.yaml; copy stack-host
- * .env.example -> .env when missing (rootDir only); optionally warn on:
+ * apps/main/.env.example -> apps/main/.env when missing; optionally warn on:
  * - missing declared params (cell.yaml params not provided in otavia.yaml)
  * - missing env vars referenced by !Env/!Secret in otavia.yaml params.
  * options.tunnel: when true, write cloudflared tunnel config and print start instructions (no daemon).
@@ -92,12 +93,14 @@ export async function setupCommand(
     throw new Error("bun is not available");
   }
 
+  const { monorepoRoot, configDir: otaviaConfigDir } = resolveOtaviaWorkspacePaths(rootDir);
+
   // 2. Load otavia.yaml (rethrow on error)
-  const otavia = loadOtaviaYaml(rootDir);
+  const otavia = loadOtaviaYamlAt(otaviaConfigDir);
 
   // 3. Stack-host env bootstrap: apps/main/.env.example -> apps/main/.env
-  const rootEnvPath = path.join(rootDir, ".env");
-  const rootEnvExamplePath = path.join(rootDir, ".env.example");
+  const rootEnvPath = path.join(otaviaConfigDir, ".env");
+  const rootEnvExamplePath = path.join(otaviaConfigDir, ".env.example");
   if (existsSync(rootEnvPath)) {
     console.log("Skip .env: already exists (main)");
   } else if (existsSync(rootEnvExamplePath)) {
@@ -109,7 +112,7 @@ export async function setupCommand(
 
   // 4. Validate cells and warn missing env refs
   for (const entry of otavia.cellsList) {
-    const cellDir = resolveCellDir(rootDir, entry.package);
+    const cellDir = resolveCellDir(monorepoRoot, entry.package);
     const cellYamlPath = path.join(cellDir, "cell.yaml");
     if (!existsSync(cellYamlPath)) {
       console.warn(`Warning: cell "${entry.mount}" (${entry.package}) not found, skipping.`);
@@ -130,7 +133,7 @@ export async function setupCommand(
       const refKeys = collectRefKeys(merged);
       if (refKeys.length === 0) continue;
 
-      const env = loadEnvForCell(rootDir, cellDir);
+      const env = loadEnvForCell(otaviaConfigDir, cellDir);
       // Empty string is a valid value for optional refs (e.g. COGNITO_CLIENT_SECRET in SSO).
       const missing = refKeys.filter((k) => env[k] === undefined);
       if (missing.length > 0) {
@@ -143,7 +146,7 @@ export async function setupCommand(
 
   const tunnelEnabled = await resolveTunnelSetupEnabled(options);
   if (tunnelEnabled) {
-    const stageEnv = loadEnvForCell(rootDir, rootDir, { stage: "dev" });
+    const stageEnv = loadEnvForCell(otaviaConfigDir, otaviaConfigDir, { stage: "dev" });
     const ports = resolvePortsFromEnv("dev", { ...stageEnv, ...process.env });
     const configDir =
       process.env.OTAVIA_CONFIG_DIR ?? path.join(homedir(), ".config", "otavia");
@@ -191,7 +194,8 @@ export async function setupCommand(
 
     try {
       await ensureOAuthCognitoCallback({
-        rootDir,
+        monorepoRoot,
+        otaviaConfigDir,
         otavia,
         tunnelHost: tunnel.hostname,
       });
@@ -499,8 +503,9 @@ export function isAwsSsoExpiredError(message: string): boolean {
 }
 
 async function ensureOAuthCognitoCallback(input: {
-  rootDir: string;
-  otavia: ReturnType<typeof loadOtaviaYaml>;
+  monorepoRoot: string;
+  otaviaConfigDir: string;
+  otavia: ReturnType<typeof loadOtaviaYamlAt>;
   tunnelHost: string;
 }): Promise<void> {
   const callback = input.otavia.oauth?.callback;
@@ -508,7 +513,7 @@ async function ensureOAuthCognitoCallback(input: {
 
   const cellEntry = input.otavia.cellsList.find((entry) => entry.mount === callback.cell);
   if (!cellEntry) return;
-  const cellDir = resolveCellDir(input.rootDir, cellEntry.package);
+  const cellDir = resolveCellDir(input.monorepoRoot, cellEntry.package);
   const cellConfig = loadCellConfig(cellDir);
   if (!cellConfig.cognito) {
     console.warn(`Warning: oauth.callback cell "${callback.cell}" has no cognito config, skipping.`);
@@ -517,7 +522,7 @@ async function ensureOAuthCognitoCallback(input: {
 
   const merged = mergeParams(input.otavia.params as Record<string, unknown> | undefined, cellEntry.params);
   assertDeclaredParamsProvided(cellConfig.params, merged, cellEntry.mount);
-  const envMap = loadEnvForCell(input.rootDir, cellDir, { stage: "dev" });
+  const envMap = loadEnvForCell(input.otaviaConfigDir, cellDir, { stage: "dev" });
   if (!envMap.SSO_BASE_URL?.trim()) {
     const ports = resolvePortsFromEnv("dev", { ...envMap, ...process.env });
     envMap.SSO_BASE_URL = `http://localhost:${ports.backend}/${callback.cell}`;

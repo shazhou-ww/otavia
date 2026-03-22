@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseDocument } from "yaml";
-import { loadOtaviaYaml } from "../config/load-otavia-yaml.js";
+import { loadOtaviaYamlAt } from "../config/load-otavia-yaml.js";
+import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace.js";
 import { loadCellConfig } from "../config/load-cell-yaml.js";
 import { resolveCellDir } from "../config/resolve-cell-dir.js";
 import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../config/resolve-params.js";
@@ -35,8 +36,8 @@ interface CellYaml {
   testing?: CellYamlTesting;
 }
 
-function loadCellYaml(rootDir: string, packageName: string): CellYaml | null {
-  const cellDir = resolveCellDir(rootDir, packageName);
+function loadCellYaml(monorepoRoot: string, packageName: string): CellYaml | null {
+  const cellDir = resolveCellDir(monorepoRoot, packageName);
   const cellPath = path.join(cellDir, CELL_YAML);
   if (!fs.existsSync(cellPath)) {
     return null;
@@ -90,18 +91,18 @@ async function hasTestFiles(cellDir: string, pattern: string): Promise<boolean> 
  * If no test files found for a cell, skip and log. Aggregate exit codes; if any cell fails, exit(1).
  */
 export async function testUnitCommand(rootDir: string): Promise<void> {
-  const root = path.resolve(rootDir);
-  const otavia = loadOtaviaYaml(root);
+  const { monorepoRoot, configDir } = resolveOtaviaWorkspacePaths(rootDir);
+  const otavia = loadOtaviaYamlAt(configDir);
   const failedCells: string[] = [];
 
   for (const entry of otavia.cellsList) {
-    const cellDir = resolveCellDir(root, entry.package);
+    const cellDir = resolveCellDir(monorepoRoot, entry.package);
     if (!fs.existsSync(path.join(cellDir, CELL_YAML))) {
       console.warn(`Skipping ${entry.mount}: cell not found`);
       continue;
     }
 
-    const cellConfig = loadCellYaml(root, entry.package);
+    const cellConfig = loadCellYaml(monorepoRoot, entry.package);
     const pattern =
       cellConfig?.testing?.unit ?? DEFAULT_UNIT_PATTERN;
 
@@ -134,9 +135,9 @@ export async function testUnitCommand(rootDir: string): Promise<void> {
  * env CELL_BASE_URL etc.; then stop gateway and containers.
  */
 export async function testE2eCommand(rootDir: string): Promise<void> {
-  const root = path.resolve(rootDir);
-  const otavia = loadOtaviaYaml(root);
-  const stageEnv = loadEnvForCell(root, root, { stage: "test" });
+  const { monorepoRoot, configDir } = resolveOtaviaWorkspacePaths(rootDir);
+  const otavia = loadOtaviaYamlAt(configDir);
+  const stageEnv = loadEnvForCell(configDir, configDir, { stage: "test" });
   const ports = resolvePortsFromEnv("test", { ...stageEnv, ...process.env });
   const firstMount = otavia.cellsList[0]?.mount ?? "sso";
 
@@ -152,7 +153,7 @@ export async function testE2eCommand(rootDir: string): Promise<void> {
   let hasBuckets = false;
 
   for (const entry of otavia.cellsList) {
-    const cellDir = resolveCellDir(root, entry.package);
+    const cellDir = resolveCellDir(monorepoRoot, entry.package);
     if (!fs.existsSync(path.join(cellDir, "cell.yaml"))) continue;
     let config: ReturnType<typeof loadCellConfig>;
     try {
@@ -195,7 +196,7 @@ export async function testE2eCommand(rootDir: string): Promise<void> {
       }
       const tablesList: LocalTableEntry[] = [];
       for (const entry of otavia.cellsList) {
-        const cellDir = resolveCellDir(root, entry.package);
+        const cellDir = resolveCellDir(monorepoRoot, entry.package);
         if (!fs.existsSync(path.join(cellDir, "cell.yaml"))) continue;
         let config: ReturnType<typeof loadCellConfig>;
         try {
@@ -225,7 +226,7 @@ export async function testE2eCommand(rootDir: string): Promise<void> {
       const s3Endpoint = `http://localhost:${ports.minio}`;
       const bucketNames: string[] = [];
       for (const entry of otavia.cellsList) {
-        const cellDir = resolveCellDir(root, entry.package);
+        const cellDir = resolveCellDir(monorepoRoot, entry.package);
         if (!fs.existsSync(path.join(cellDir, "cell.yaml"))) continue;
         let config: ReturnType<typeof loadCellConfig>;
         try {
@@ -249,11 +250,11 @@ export async function testE2eCommand(rootDir: string): Promise<void> {
     if (hasTables) gatewayEnv.DYNAMODB_ENDPOINT = `http://localhost:${ports.dynamodb}`;
     if (hasBuckets) gatewayEnv.S3_ENDPOINT = `http://localhost:${ports.minio}`;
 
-    const cliPath = fs.existsSync(path.join(root, "apps", "otavia", "src", "cli.ts"))
-      ? path.join(root, "apps", "otavia", "src", "cli.ts")
-      : path.join(root, "..", "otavia", "src", "cli.ts");
+    const cliPath = fs.existsSync(path.join(monorepoRoot, "apps", "otavia", "src", "cli.ts"))
+      ? path.join(monorepoRoot, "apps", "otavia", "src", "cli.ts")
+      : path.join(monorepoRoot, "..", "otavia", "src", "cli.ts");
     gatewayProc = Bun.spawn(["bun", "run", cliPath, "dev"], {
-      cwd: root,
+      cwd: monorepoRoot,
       env: gatewayEnv,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -281,7 +282,7 @@ export async function testE2eCommand(rootDir: string): Promise<void> {
     for (const { mount, cellDir, config, e2ePattern, params } of e2eCells) {
       const merged = mergeParams(otavia.params, params);
       assertDeclaredParamsProvided(config.params, merged, mount);
-      const envMap = loadEnvForCell(root, cellDir, { stage: "test" });
+      const envMap = loadEnvForCell(configDir, cellDir, { stage: "test" });
       if (!envMap.SSO_BASE_URL?.trim()) {
         envMap.SSO_BASE_URL = `http://localhost:${ports.backend}/${firstMount}`;
       }

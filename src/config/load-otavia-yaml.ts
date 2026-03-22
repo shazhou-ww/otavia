@@ -3,6 +3,7 @@ import path from "path";
 import { parseDocument, type SchemaOptions } from "yaml";
 import type { OtaviaYaml } from "./otavia-yaml-schema.js";
 import { isEnvRef, isParamRef, isSecretRef } from "./cell-yaml-schema.js";
+import { resolveOtaviaWorkspacePaths } from "./resolve-otavia-workspace.js";
 
 const CONFIG_FILENAME = "otavia.yaml";
 const DEFAULT_SCOPE = "@otavia";
@@ -130,8 +131,12 @@ function parseCells(data: unknown): { cells: Record<string, string>; cellsList: 
   throw new Error("otavia.yaml: cells must be an array or an object");
 }
 
-export function loadOtaviaYaml(rootDir: string): OtaviaYaml {
-  const configPath = path.resolve(rootDir, CONFIG_FILENAME);
+/**
+ * Load `otavia.yaml` from the directory that contains it.
+ * Prefer this in tests or when the config directory is already known.
+ */
+export function loadOtaviaYamlAt(configDir: string): OtaviaYaml {
+  const configPath = path.resolve(configDir, CONFIG_FILENAME);
   if (!fs.existsSync(configPath)) {
     throw new Error("otavia.yaml not found");
   }
@@ -253,4 +258,12 @@ export function loadOtaviaYaml(rootDir: string): OtaviaYaml {
     }
   }
   return result;
+}
+
+/**
+ * Resolve Bun/npm workspace + stack config from `startDir`, then load `otavia.yaml` from the resolved config directory.
+ */
+export function loadOtaviaYaml(startDir: string): OtaviaYaml {
+  const { configDir } = resolveOtaviaWorkspacePaths(startDir);
+  return loadOtaviaYamlAt(configDir);
 }

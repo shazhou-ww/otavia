@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
@@ -6,16 +6,49 @@ import { loadOtaviaYaml } from "../../config/load-otavia-yaml.js";
 import { initCommand } from "../init.js";
 
 describe("initCommand", () => {
-  test("creates otavia.yaml, cells/app/cell.yaml, and valid config", () => {
+  test("creates monorepo packages, apps/main, hello cell, and valid otavia.yaml", () => {
     const root = mkdtempSync(join(tmpdir(), "otavia-init-"));
     try {
-      initCommand(root, { stackName: "demo-stack", domain: "app.example.dev" });
-      expect(existsSync(join(root, "otavia.yaml"))).toBe(true);
-      expect(existsSync(join(root, "cells", "app", "cell.yaml"))).toBe(true);
+      initCommand(root, {
+        stackName: "demo-stack",
+        domain: "app.example.dev",
+        packageScope: "@demo",
+      });
+      expect(existsSync(join(root, "apps", "main", "otavia.yaml"))).toBe(true);
+      expect(existsSync(join(root, "package.json"))).toBe(true);
+      expect(existsSync(join(root, "apps", "main", "package.json"))).toBe(true);
+      expect(existsSync(join(root, "packages", ".gitkeep"))).toBe(true);
+      expect(existsSync(join(root, "cells", "hello", "cell.yaml"))).toBe(true);
+      expect(existsSync(join(root, "cells", "hello", "backend", "app.ts"))).toBe(true);
+      expect(existsSync(join(root, "cells", "hello", "backend", "handler.ts"))).toBe(true);
+      expect(existsSync(join(root, "cells", "hello", "frontend", "shell.ts"))).toBe(true);
+      expect(existsSync(join(root, "cells", "hello", "frontend", "index.html"))).toBe(true);
+      expect(existsSync(join(root, "apps", "main", ".env"))).toBe(true);
       const otavia = loadOtaviaYaml(root);
       expect(otavia.stackName).toBe("demo-stack");
       expect(otavia.domain.host).toBe("app.example.dev");
-      expect(otavia.cells.app).toBe("@otavia/app");
+      expect(otavia.cells.hello).toBe("@demo/hello");
+      expect(otavia.defaultCell).toBe("hello");
+      const mainPkg = JSON.parse(readFileSync(join(root, "apps", "main", "package.json"), "utf-8")) as {
+        name?: string;
+      };
+      expect(mainPkg.name).toBe("@demo/main");
+      const helloPkg = JSON.parse(readFileSync(join(root, "cells", "hello", "package.json"), "utf-8")) as {
+        name?: string;
+        devDependencies?: Record<string, string>;
+      };
+      expect(helloPkg.name).toBe("@demo/hello");
+      expect(helloPkg.devDependencies?.react).toMatch(/^\^/);
+      expect(helloPkg.devDependencies?.["react-dom"]).toMatch(/^\^/);
+      const rootPkg = JSON.parse(readFileSync(join(root, "package.json"), "utf-8")) as {
+        workspaces?: string[];
+        scripts?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+      };
+      expect(rootPkg.devDependencies?.react).toBeUndefined();
+      expect(rootPkg.workspaces).toEqual(["packages/*", "cells/*", "apps/*"]);
+      expect(rootPkg.scripts?.dev).toBe("bun run --cwd apps/main dev");
+      expect(rootPkg.scripts?.aws).toBe("bun run --cwd apps/main aws");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -24,8 +57,13 @@ describe("initCommand", () => {
   test("refuses to overwrite without --force", () => {
     const root = mkdtempSync(join(tmpdir(), "otavia-init-"));
     try {
-      writeFileSync(join(root, "otavia.yaml"), "stackName: x\ndomain:\n  host: h\ncells:\n  a: '@otavia/a'\n", "utf-8");
-      expect(() => initCommand(root, {})).toThrow(/already exists/);
+      mkdirSync(join(root, "apps", "main"), { recursive: true });
+      writeFileSync(
+        join(root, "apps", "main", "otavia.yaml"),
+        "stackName: x\ndomain:\n  host: h\ncells:\n  a: '@otavia/a'\n",
+        "utf-8"
+      );
+      expect(() => initCommand(root, { packageScope: "@test" })).toThrow(/already exists/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -35,7 +73,7 @@ describe("initCommand", () => {
     const root = mkdtempSync(join(tmpdir(), "otavia-init-"));
     try {
       writeFileSync(join(root, ".gitignore"), "custom\n", "utf-8");
-      initCommand(root, { stackName: "s", domain: "d.example.com" });
+      initCommand(root, { stackName: "s", domain: "d.example.com", packageScope: "@demo" });
       const gi = readFileSync(join(root, ".gitignore"), "utf-8");
       expect(gi).toContain("custom");
       expect(gi).toContain("node_modules/");
