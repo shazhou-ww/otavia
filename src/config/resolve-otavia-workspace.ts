@@ -144,7 +144,7 @@ function resolveInsideWorkspace(workspaceRoot: string, startDir: string): Otavia
     fromWalk ?? findOtaviaConfigDirUnderWorkspaceTree(workspaceRoot);
   if (fromTree == null) {
     throw new Error(
-      `otavia.yaml not found under workspace root ${workspaceRoot} (walk up from cwd, then root otavia.yaml or apps/<name>/otavia.yaml)`
+      `[workspace layout] otavia.yaml not found under workspace root ${workspaceRoot} (walk up from cwd, then root otavia.yaml or apps/<name>/otavia.yaml)`
     );
   }
   logOtaviaResolve("workspace: configDir source", {
@@ -177,7 +177,7 @@ function resolveLegacy(startDir: string): OtaviaWorkspacePaths {
     dir = parent;
   }
   throw new Error(
-    "otavia.yaml not found: use a Bun/npm workspace (root package.json with \"workspaces\") and place otavia.yaml under the workspace, or add otavia.yaml in this directory or a parent"
+    "[legacy layout] otavia.yaml not found: use a Bun/npm workspace (root package.json with \"workspaces\") and place otavia.yaml under the workspace, or add otavia.yaml in this directory or a parent"
   );
 }
 

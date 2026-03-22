@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { resolveDevPublicBaseUrl, resolveDevTunnelEnabled } from "../dev";
+import { resolveDevPublicBaseUrl, resolveDevTunnelEnabled, type DevTunnelIntent } from "../dev";
 
 describe("resolveDevPublicBaseUrl", () => {
   test("uses tunnel public base URL when tunnel is enabled", () => {
@@ -35,15 +35,11 @@ describe("resolveDevPublicBaseUrl", () => {
 });
 
 describe("resolveDevTunnelEnabled", () => {
-  test("defaults to false when option is missing", () => {
-    expect(resolveDevTunnelEnabled()).toBe(false);
+  test("off intent disables tunnel", () => {
+    expect(resolveDevTunnelEnabled({ mode: "off" } satisfies DevTunnelIntent)).toBe(false);
   });
 
-  test("uses explicit tunnel=true", () => {
-    expect(resolveDevTunnelEnabled({ tunnel: true })).toBe(true);
-  });
-
-  test("uses explicit tunnel=false", () => {
-    expect(resolveDevTunnelEnabled({ tunnel: false })).toBe(false);
+  test("on intent enables tunnel", () => {
+    expect(resolveDevTunnelEnabled({ mode: "on" } satisfies DevTunnelIntent)).toBe(true);
   });
 });

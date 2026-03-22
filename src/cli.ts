@@ -1,7 +1,6 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
-import { loadOtaviaYaml } from "./config/load-otavia-yaml.js";
-import { setupCommand } from "./commands/setup.js";
+import { setupCommand, type SetupTunnelIntent } from "./commands/setup.js";
 import { cleanCommand } from "./commands/clean.js";
 import { awsLoginCommand, awsLogoutCommand } from "./commands/aws.js";
 import { devCommand } from "./commands/dev.js";
@@ -20,20 +19,6 @@ program
   .description("CLI for Otavia stack")
   .version(getOtaviaPackageVersion());
 
-const placeholderAction = async () => {
-  console.log("Not implemented");
-};
-
-program.hook("preAction", (_thisCommand, actionCommand) => {
-  if (actionCommand.name() === "init") return;
-  try {
-    loadOtaviaYaml(process.cwd());
-  } catch (err) {
-    console.error(err instanceof Error ? err.message : String(err));
-    process.exit(1);
-  }
-});
-
 program
   .command("init")
   .description(
@@ -46,6 +31,10 @@ program
   .option("--stack-name <name>", "CloudFormation stack name (default: current directory name)")
   .option("--domain <host>", "Primary domain host (default: example.com)")
   .option(
+    "--use-defaults",
+    "Non-interactive: allow default stack name (directory) and domain (example.com) without --stack-name/--domain"
+  )
+  .option(
     "--scope <scope>",
     'npm scope for @scope/main and @scope/<cell> (e.g. acme or @acme); omit to prompt, or use directory name in non-TTY'
   )
@@ -53,10 +42,25 @@ program
     async (
       _args: unknown,
       cmd: {
-        opts: () => { force?: boolean; stackName?: string; domain?: string; scope?: string };
+        opts: () => {
+          force?: boolean;
+          stackName?: string;
+          domain?: string;
+          scope?: string;
+          useDefaults?: boolean;
+        };
       }
     ) => {
       const opts = cmd.opts();
+      if (!process.stdin.isTTY && !opts.useDefaults) {
+        const sn = opts.stackName?.trim();
+        const dom = opts.domain?.trim();
+        if (!sn || !dom) {
+          throw new Error(
+            "Non-interactive init requires --stack-name and --domain, or pass --use-defaults to use the directory name and example.com."
+          );
+        }
+      }
       const packageScope = await resolvePackageScopeForInit({
         cwd: process.cwd(),
         explicitScope: opts.scope,
@@ -83,7 +87,11 @@ program.command("setup")
     ) => {
       const opts = cmd.opts();
       const source = cmd.getOptionValueSource("tunnel");
-      await setupCommand(process.cwd(), { tunnel: opts.tunnel, tunnelSpecified: source === "cli" });
+      const tunnel: SetupTunnelIntent =
+        source === "cli"
+          ? { mode: "cli", enabled: Boolean(opts.tunnel) }
+          : { mode: "prompt" };
+      await setupCommand(process.cwd(), { tunnel });
     }
   );
 program.command("dev")
@@ -106,10 +114,14 @@ program.command("dev")
     ) => {
       const opts = cmd.opts();
       await devCommand(process.cwd(), {
-        tunnel: opts.tunnel,
-        tunnelHost: opts.tunnelHost,
-        tunnelConfig: opts.tunnelConfig,
-        tunnelProtocol: opts.tunnelProtocol,
+        tunnel: opts.tunnel
+          ? {
+              mode: "on",
+              tunnelHost: opts.tunnelHost,
+              tunnelConfig: opts.tunnelConfig,
+              tunnelProtocol: opts.tunnelProtocol,
+            }
+          : { mode: "off" },
       });
     }
   );

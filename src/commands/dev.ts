@@ -7,6 +7,17 @@ import { getOtaviaPackageVersion } from "../package-version.js";
 import { loadEnvForCell } from "../utils/env.js";
 import { resolvePortsFromEnv } from "../config/ports.js";
 
+export type DevTunnelIntent =
+  | { mode: "off" }
+  | {
+      mode: "on";
+      tunnelHost?: string;
+      tunnelConfig?: string;
+      tunnelProtocol?: string;
+    };
+
+export type DevCommandOptions = { tunnel: DevTunnelIntent };
+
 export function resolveDevPublicBaseUrl(options: {
   tunnelEnabled?: boolean;
   tunnelPublicBaseUrl?: string;
@@ -18,8 +29,8 @@ export function resolveDevPublicBaseUrl(options: {
   return `http://localhost:${options.vitePort}`;
 }
 
-export function resolveDevTunnelEnabled(options?: { tunnel?: boolean }): boolean {
-  return options?.tunnel ?? false;
+export function resolveDevTunnelEnabled(tunnel: DevTunnelIntent): boolean {
+  return tunnel.mode === "on";
 }
 
 function envFlagTrue(name: string): boolean {
@@ -34,10 +45,7 @@ function envFlagTrue(name: string): boolean {
  * When OTAVIA_SKIP_AWS_CHECK=1, skip STS check (local UI/gateway only; deploy still needs AWS).
  * On SIGINT/SIGTERM stops and exits.
  */
-export async function devCommand(
-  rootDir: string,
-  options?: { tunnel?: boolean; tunnelHost?: string; tunnelConfig?: string; tunnelProtocol?: string }
-): Promise<void> {
+export async function devCommand(rootDir: string, options: DevCommandOptions): Promise<void> {
   console.error(
     `[otavia] CLI v${getOtaviaPackageVersion()} — path debug: OTAVIA_DEBUG_RESOLVE=1; unreleased fixes: bun link otavia from this repo`
   );
@@ -71,12 +79,12 @@ export async function devCommand(
 
   let tunnelHandle: { publicBaseUrl: string; stop: () => void } | undefined;
   let publicBaseUrl: string | undefined;
-  const tunnelEnabled = resolveDevTunnelEnabled(options);
-  if (tunnelEnabled) {
+  const tunnelEnabled = resolveDevTunnelEnabled(options.tunnel);
+  if (options.tunnel.mode === "on") {
     tunnelHandle = await startTunnel(monorepoRoot, configDir, {
-      tunnelConfigPath: options?.tunnelConfig,
-      tunnelHost: options?.tunnelHost,
-      tunnelProtocol: options?.tunnelProtocol,
+      tunnelConfigPath: options.tunnel.tunnelConfig,
+      tunnelHost: options.tunnel.tunnelHost,
+      tunnelProtocol: options.tunnel.tunnelProtocol,
     });
     publicBaseUrl = tunnelHandle.publicBaseUrl;
     console.log(`[tunnel] Started. Public base URL: ${publicBaseUrl}`);

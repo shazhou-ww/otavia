@@ -83,6 +83,62 @@ export function loadCellConfig(cellDir: string): CellConfig {
     }
   }
 
+  function assertRoutesArray(labelBase: string, routes: unknown): void {
+    if (!Array.isArray(routes)) {
+      throw new Error(`${labelBase} must be an array of strings (use [] if none)`);
+    }
+    for (let i = 0; i < routes.length; i += 1) {
+      const r = routes[i];
+      if (typeof r !== "string" || r.trim() === "") {
+        throw new Error(`${labelBase}[${i}] must be a non-empty string`);
+      }
+    }
+  }
+
+  if (raw.backend != null) {
+    if (typeof raw.backend !== "object" || Array.isArray(raw.backend)) {
+      throw new Error("cell.yaml: 'backend' must be an object");
+    }
+    const be = raw.backend as Record<string, unknown>;
+    if (be.entries != null) {
+      if (typeof be.entries !== "object" || Array.isArray(be.entries)) {
+        throw new Error("cell.yaml: backend.entries must be an object");
+      }
+      for (const [key, ent] of Object.entries(be.entries as Record<string, unknown>)) {
+        if (ent == null || typeof ent !== "object" || Array.isArray(ent)) {
+          throw new Error(`cell.yaml: backend.entries.${key} must be an object`);
+        }
+        const e = ent as Record<string, unknown>;
+        if (!("routes" in e)) {
+          throw new Error(`cell.yaml: backend.entries.${key}.routes is required (use [] if none)`);
+        }
+        assertRoutesArray(`cell.yaml: backend.entries.${key}.routes`, e.routes);
+      }
+    }
+  }
+
+  if (raw.frontend != null) {
+    if (typeof raw.frontend !== "object" || Array.isArray(raw.frontend)) {
+      throw new Error("cell.yaml: 'frontend' must be an object");
+    }
+    const fe = raw.frontend as Record<string, unknown>;
+    if (fe.entries != null) {
+      if (typeof fe.entries !== "object" || Array.isArray(fe.entries)) {
+        throw new Error("cell.yaml: frontend.entries must be an object");
+      }
+      for (const [key, ent] of Object.entries(fe.entries as Record<string, unknown>)) {
+        if (ent == null || typeof ent !== "object" || Array.isArray(ent)) {
+          throw new Error(`cell.yaml: frontend.entries.${key} must be an object`);
+        }
+        const e = ent as Record<string, unknown>;
+        if (!("routes" in e)) {
+          throw new Error(`cell.yaml: frontend.entries.${key}.routes is required (use [] if none)`);
+        }
+        assertRoutesArray(`cell.yaml: frontend.entries.${key}.routes`, e.routes);
+      }
+    }
+  }
+
   if (raw.appsyncEvents != null) {
     if (typeof raw.appsyncEvents !== "object" || Array.isArray(raw.appsyncEvents)) {
       throw new Error("cell.yaml: 'appsyncEvents' must be an object");

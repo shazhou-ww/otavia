@@ -17,7 +17,7 @@ import {
 describe("resolveTunnelSetupEnabled", () => {
   test("uses explicit --tunnel=true without prompting", async () => {
     const enabled = await resolveTunnelSetupEnabled(
-      { tunnel: true, tunnelSpecified: true },
+      { mode: "cli", enabled: true },
       {
         isTTY: true,
         ask: async () => {
@@ -30,7 +30,7 @@ describe("resolveTunnelSetupEnabled", () => {
 
   test("uses explicit --tunnel=false without prompting", async () => {
     const enabled = await resolveTunnelSetupEnabled(
-      { tunnel: false, tunnelSpecified: true },
+      { mode: "cli", enabled: false },
       {
         isTTY: true,
         ask: async () => {
@@ -43,7 +43,7 @@ describe("resolveTunnelSetupEnabled", () => {
 
   test("defaults to false when non-interactive and option unspecified", async () => {
     const enabled = await resolveTunnelSetupEnabled(
-      { tunnelSpecified: false },
+      { mode: "prompt" },
       {
         isTTY: false,
       }
@@ -53,7 +53,7 @@ describe("resolveTunnelSetupEnabled", () => {
 
   test("prompts user when interactive and option unspecified", async () => {
     const enabled = await resolveTunnelSetupEnabled(
-      { tunnelSpecified: false },
+      { mode: "prompt" },
       {
         isTTY: true,
         ask: async () => "y",

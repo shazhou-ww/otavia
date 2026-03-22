@@ -19,6 +19,13 @@ type AskFn = (prompt: string) => Promise<string>;
 type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 type CloudflareZone = { id: string; name: string };
 
+/** How tunnel setup should be decided: explicit CLI flag vs interactive prompt. */
+export type SetupTunnelIntent =
+  | { mode: "cli"; enabled: boolean }
+  | { mode: "prompt" };
+
+export type SetupCommandOptions = { tunnel: SetupTunnelIntent };
+
 const ANSI_RESET = "\x1b[0m";
 const ANSI_BOLD = "\x1b[1m";
 const ANSI_CYAN = "\x1b[36m";
@@ -71,11 +78,11 @@ function collectRefKeys(params: Record<string, unknown>): string[] {
  * apps/main/.env.example -> apps/main/.env when missing; optionally warn on:
  * - missing declared params (cell.yaml params not provided in otavia.yaml)
  * - missing env vars referenced by !Env/!Secret in otavia.yaml params.
- * options.tunnel: when true, write cloudflared tunnel config and print start instructions (no daemon).
+ * options.tunnel: CLI on/off or interactive prompt (see SetupTunnelIntent).
  */
 export async function setupCommand(
   rootDir: string,
-  options?: { tunnel?: boolean; tunnelSpecified?: boolean }
+  options: SetupCommandOptions = { tunnel: { mode: "prompt" } }
 ): Promise<void> {
   // 1. Check bun is available
   try {
@@ -145,7 +152,7 @@ export async function setupCommand(
     }
   }
 
-  const tunnelEnabled = await resolveTunnelSetupEnabled(options);
+  const tunnelEnabled = await resolveTunnelSetupEnabled(options.tunnel);
   if (tunnelEnabled) {
     const stageEnv = loadEnvForCell(otaviaConfigDir, otaviaConfigDir, { stage: "dev" });
     const ports = resolvePortsFromEnv("dev", { ...stageEnv, ...process.env });
@@ -218,15 +225,11 @@ async function askText(prompt: string): Promise<string> {
 }
 
 export async function resolveTunnelSetupEnabled(
-  options?: { tunnel?: boolean; tunnelSpecified?: boolean },
+  intent: SetupTunnelIntent,
   deps?: { isTTY?: boolean; ask?: (prompt: string) => Promise<string> }
 ): Promise<boolean> {
-  if (options?.tunnelSpecified) {
-    return Boolean(options.tunnel);
-  }
-  // Backward compatibility for call sites that pass { tunnel: true } without tunnelSpecified.
-  if (options?.tunnel === true) {
-    return true;
+  if (intent.mode === "cli") {
+    return intent.enabled;
   }
   const isTTY = deps?.isTTY ?? Boolean(process.stdin.isTTY && process.stdout.isTTY);
   if (!isTTY) return false;

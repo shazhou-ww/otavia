@@ -94,6 +94,28 @@ name: ""
     }
   });
 
+  test("throws when backend entry omits routes", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-cell-"));
+    try {
+      writeCellYaml(
+        tmp,
+        `
+name: no-routes
+backend:
+  runtime: bun
+  entries:
+    api:
+      handler: backend/handler.ts
+      timeout: 30
+      memory: 256
+`
+      );
+      expect(() => loadCellConfig(tmp)).toThrow("backend.entries.api.routes is required");
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
   test("throws when params is not string array", () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-cell-"));
     try {

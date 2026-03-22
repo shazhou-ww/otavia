@@ -108,7 +108,7 @@ export async function startTunnel(
       }
     }
     const { setupCommand } = await import("../setup.js");
-    await setupCommand(monorepoRoot, { tunnel: true });
+    await setupCommand(monorepoRoot, { tunnel: { mode: "cli", enabled: true } });
     if (!existsSync(tunnelConfigPath)) {
       throw new Error(
         `Tunnel config not found after auto-setup: ${tunnelConfigPath}. Run setup manually or pass --tunnel-config.`
