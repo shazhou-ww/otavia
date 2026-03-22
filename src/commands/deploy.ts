@@ -8,6 +8,7 @@ import { loadCellConfig } from "../config/load-cell-yaml";
 import { resolveCellDir } from "../config/resolve-cell-dir";
 import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../config/resolve-params";
 import { loadEnvForCell } from "../utils/env";
+import { bunExecutable } from "../utils/bun-executable";
 import { generateTemplate } from "../deploy/template";
 import { ensureAcmCertificateWithCloudflare, createCloudFrontDnsRecord } from "../deploy/cloudflare-dns";
 
@@ -169,7 +170,7 @@ async function buildFrontends(
 
     console.log(`  Building frontend [${mount}]...`);
     const proc = Bun.spawn(
-      ["bun", "x", "vite", "build", "--logLevel", "error", "--outDir", outDir, "--base", `/${mount}/`],
+      [bunExecutable(), "x", "vite", "build", "--logLevel", "error", "--outDir", outDir, "--base", `/${mount}/`],
       {
         cwd: frontendDir,
         stdout: "inherit",

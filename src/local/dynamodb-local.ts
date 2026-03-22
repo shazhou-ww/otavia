@@ -97,6 +97,23 @@ export async function isDynamoDBReady(endpoint: string): Promise<boolean> {
   }
 }
 
+/**
+ * DynamoDB Local often accepts TCP (Docker port publish) before ListTables works.
+ * Poll until the API responds or attempts are exhausted.
+ */
+export async function waitForDynamoDBApi(
+  endpoint: string,
+  options?: { attempts?: number; delayMs?: number }
+): Promise<void> {
+  const attempts = options?.attempts ?? 30;
+  const delayMs = options?.delayMs ?? 500;
+  for (let i = 0; i < attempts; i++) {
+    if (await isDynamoDBReady(endpoint)) return;
+    await Bun.sleep(delayMs);
+  }
+  throw new Error("DynamoDB endpoint not accepting requests");
+}
+
 export interface LocalTableEntry {
   tableName: string;
   config: TableConfig;

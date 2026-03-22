@@ -9,6 +9,7 @@ import { resolveCellDir } from "../config/resolve-cell-dir";
 import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../config/resolve-params";
 import { isEnvRef, isSecretRef } from "../config/cell-yaml-schema";
 import { loadEnvForCell } from "../utils/env";
+import { bunExecutable } from "../utils/bun-executable";
 import { resolvePortsFromEnv } from "../config/ports";
 import { loadRenderedTemplate, loadTemplate, renderTemplate } from "../templates/load";
 
@@ -86,7 +87,7 @@ export async function setupCommand(
 ): Promise<void> {
   // 1. Check bun is available
   try {
-    const proc = await Bun.spawn(["bun", "--version"], {
+    const proc = await Bun.spawn([bunExecutable(), "--version"], {
       stdout: "pipe",
       stderr: "pipe",
     });

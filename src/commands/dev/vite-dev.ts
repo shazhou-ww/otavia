@@ -7,6 +7,7 @@ import type { CellConfig } from "../../config/cell-yaml-schema";
 import { resolveCellDir } from "../../config/resolve-cell-dir";
 import { resolveRootRedirectMount } from "./mount-selection";
 import { loadRenderedTemplate, loadTemplate } from "../../templates/load";
+import { bunExecutable } from "../../utils/bun-executable";
 
 export interface ViteDevHandle {
   stop: () => void;
@@ -417,7 +418,7 @@ export async function startViteDev(
 
   const configPath = resolve(frontendRoot, "vite.config.ts");
   // cwd = monorepo root so Node resolves the \`otavia\` package from hoisted node_modules. Project root is set via mergeConfig({ root }).
-  const child = Bun.spawn(["bun", "x", "vite", "--config", configPath], {
+  const child = Bun.spawn([bunExecutable(), "x", "vite", "--config", configPath], {
     cwd: monorepoRoot,
     env,
     stdio: ["ignore", "inherit", "inherit"],

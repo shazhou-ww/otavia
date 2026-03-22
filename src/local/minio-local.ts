@@ -42,3 +42,17 @@ export async function isMinIOReady(endpoint: string): Promise<boolean> {
     client.destroy();
   }
 }
+
+/** MinIO may accept TCP before S3 API is ready; poll ListBuckets until success. */
+export async function waitForMinIOS3Api(
+  endpoint: string,
+  options?: { attempts?: number; delayMs?: number }
+): Promise<void> {
+  const attempts = options?.attempts ?? 30;
+  const delayMs = options?.delayMs ?? 500;
+  for (let i = 0; i < attempts; i++) {
+    if (await isMinIOReady(endpoint)) return;
+    await Bun.sleep(delayMs);
+  }
+  throw new Error("MinIO endpoint not accepting S3 requests");
+}

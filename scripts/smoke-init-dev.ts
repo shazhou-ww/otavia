@@ -7,6 +7,7 @@ import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { initCommand } from "../src/commands/init";
+import { bunExecutable } from "../src/utils/bun-executable";
 
 /** Repo root (parent of scripts/). */
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -39,7 +40,7 @@ function treeSummary(root: string, rel = "", depth = 0): void {
 
 async function main(): Promise<void> {
   logSection("build:runtime (dist JS for package exports)");
-  const buildRt = Bun.spawnSync(["bun", "run", "build:runtime"], {
+  const buildRt = Bun.spawnSync([bunExecutable(), "run", "build:runtime"], {
     cwd: repoRoot,
     stderr: "inherit",
     stdout: "inherit",
@@ -82,7 +83,7 @@ async function main(): Promise<void> {
     writeFileSync(join(root, "package.json"), `${JSON.stringify(rootPkg, null, 2)}\n`, "utf-8");
 
     logSection("bun install --no-cache");
-    const install = Bun.spawnSync(["bun", "install", "--no-cache"], {
+    const install = Bun.spawnSync([bunExecutable(), "install", "--no-cache"], {
       cwd: root,
       stderr: "inherit",
       stdout: "inherit",
@@ -94,7 +95,7 @@ async function main(): Promise<void> {
     writeFileSync(join(root, "apps", "main", ".env"), `PORT_BASE=${portBase}\n`, "utf-8");
 
     logSection(`bun run dev (ports backend=${backendPort}, vite=${vitePort})`);
-    const devProc = Bun.spawn(["bun", "run", "dev"], {
+    const devProc = Bun.spawn([bunExecutable(), "run", "dev"], {
       cwd: root,
       env: {
         ...process.env,

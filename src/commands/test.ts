@@ -8,6 +8,7 @@ import { resolveCellDir } from "../config/resolve-cell-dir";
 import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../config/resolve-params";
 import { tablePhysicalName, bucketPhysicalName } from "../config/resource-names";
 import { loadEnvForCell } from "../utils/env";
+import { bunExecutable } from "../utils/bun-executable";
 import {
   isDockerRunning,
   startDynamoDB,
@@ -15,12 +16,8 @@ import {
   waitForPort,
   stopContainer,
 } from "../local/docker";
-import {
-  isDynamoDBReady,
-  ensureLocalTables,
-  type LocalTableEntry,
-} from "../local/dynamodb-local";
-import { ensureLocalBuckets } from "../local/minio-local";
+import { waitForDynamoDBApi, ensureLocalTables, type LocalTableEntry } from "../local/dynamodb-local";
+import { waitForMinIOS3Api, ensureLocalBuckets } from "../local/minio-local";
 import { resolvePortsFromEnv } from "../config/ports";
 
 const DEFAULT_UNIT_PATTERN = "**/__tests__/*.test.ts";
@@ -112,7 +109,7 @@ export async function testUnitCommand(rootDir: string): Promise<void> {
       continue;
     }
 
-    const proc = Bun.spawn(["bun", "test", pattern], {
+    const proc = Bun.spawn([bunExecutable(), "test", pattern], {
       cwd: cellDir,
       stdio: ["inherit", "inherit", "inherit"],
     });
@@ -191,9 +188,7 @@ export async function testE2eCommand(rootDir: string): Promise<void> {
       const ready = await waitForPort(ports.dynamodb);
       if (!ready) throw new Error("DynamoDB Local did not become ready in time");
       const dynamoEndpoint = `http://localhost:${ports.dynamodb}`;
-      if (!(await isDynamoDBReady(dynamoEndpoint))) {
-        throw new Error("DynamoDB endpoint not accepting requests");
-      }
+      await waitForDynamoDBApi(dynamoEndpoint);
       const tablesList: LocalTableEntry[] = [];
       for (const entry of otavia.cellsList) {
         const cellDir = resolveCellDir(monorepoRoot, entry.package);
@@ -224,6 +219,7 @@ export async function testE2eCommand(rootDir: string): Promise<void> {
       const ready = await waitForPort(ports.minio);
       if (!ready) throw new Error("MinIO did not become ready in time");
       const s3Endpoint = `http://localhost:${ports.minio}`;
+      await waitForMinIOS3Api(s3Endpoint);
       const bucketNames: string[] = [];
       for (const entry of otavia.cellsList) {
         const cellDir = resolveCellDir(monorepoRoot, entry.package);
@@ -253,7 +249,7 @@ export async function testE2eCommand(rootDir: string): Promise<void> {
     const cliPath = fs.existsSync(path.join(monorepoRoot, "apps", "otavia", "src", "cli.ts"))
       ? path.join(monorepoRoot, "apps", "otavia", "src", "cli.ts")
       : path.join(monorepoRoot, "..", "otavia", "src", "cli.ts");
-    gatewayProc = Bun.spawn(["bun", "run", cliPath, "dev"], {
+    gatewayProc = Bun.spawn([bunExecutable(), "run", cliPath, "dev"], {
       cwd: monorepoRoot,
       env: gatewayEnv,
       stdio: ["ignore", "pipe", "pipe"],
@@ -299,7 +295,7 @@ export async function testE2eCommand(rootDir: string): Promise<void> {
       if (hasTables) cellEnv.DYNAMODB_ENDPOINT = `http://localhost:${ports.dynamodb}`;
       if (hasBuckets) cellEnv.S3_ENDPOINT = `http://localhost:${ports.minio}`;
 
-      const proc = Bun.spawn(["bun", "test", e2ePattern], {
+      const proc = Bun.spawn([bunExecutable(), "test", e2ePattern], {
         cwd: cellDir,
         env: cellEnv,
         stdio: ["inherit", "inherit", "inherit"],

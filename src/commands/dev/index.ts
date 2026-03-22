@@ -3,7 +3,6 @@ import { runGatewayDev } from "./gateway";
 import { startViteDev } from "./vite-dev";
 import { startTunnel } from "./tunnel";
 import { resolveOtaviaWorkspacePaths } from "../../config/resolve-otavia-workspace";
-import { getOtaviaPackageVersion } from "../../package-version";
 import { loadEnvForCell } from "../../utils/env";
 import { resolvePortsFromEnv } from "../../config/ports";
 
@@ -46,9 +45,6 @@ function envFlagTrue(name: string): boolean {
  * On SIGINT/SIGTERM stops and exits.
  */
 export async function devCommand(rootDir: string, options: DevCommandOptions): Promise<void> {
-  console.error(
-    `[otavia] CLI v${getOtaviaPackageVersion()} — path debug: OTAVIA_DEBUG_RESOLVE=1; unreleased fixes: bun link otavia from this repo`
-  );
   const { monorepoRoot, configDir } = resolveOtaviaWorkspacePaths(rootDir);
   if (!envFlagTrue("OTAVIA_SKIP_AWS_CHECK")) {
     const aws = await checkAwsCredentials(configDir);
@@ -65,9 +61,20 @@ export async function devCommand(rootDir: string, options: DevCommandOptions): P
   }
   const stageEnv = loadEnvForCell(configDir, configDir, { stage: "dev" });
   const ports = resolvePortsFromEnv("dev", { ...stageEnv, ...process.env });
-  const backendPort = ports.backend;
-  const vitePort = ports.frontend;
   const gatewayOnly = process.env.OTAVIA_DEV_GATEWAY_ONLY === "1";
+  // E2E (and manual gateway-only) passes PORT for the test-stage backend offset; devCommand
+  // otherwise always used dev offsets, so the parent waited on the wrong port.
+  let backendPort = ports.backend;
+  if (gatewayOnly) {
+    const raw = process.env.PORT?.trim();
+    if (raw) {
+      const n = Number.parseInt(raw, 10);
+      if (Number.isFinite(n) && n > 0 && n <= 65535) {
+        backendPort = n;
+      }
+    }
+  }
+  const vitePort = ports.frontend;
   const overrides: { dynamoEndpoint?: string; s3Endpoint?: string } | undefined = gatewayOnly
     ? (process.env.DYNAMODB_ENDPOINT || process.env.S3_ENDPOINT
         ? {

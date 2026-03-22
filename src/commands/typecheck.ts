@@ -3,6 +3,7 @@ import path from "node:path";
 import { loadOtaviaYamlAt } from "../config/load-otavia-yaml";
 import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace";
 import { resolveCellDir } from "../config/resolve-cell-dir";
+import { bunExecutable } from "../utils/bun-executable";
 
 /**
  * Run tsc --noEmit in each resolved cellDir. Aggregate exit codes; if any cell
@@ -21,7 +22,7 @@ export async function typecheckCommand(rootDir: string): Promise<void> {
       continue;
     }
 
-    const proc = Bun.spawn(["bun", "x", "tsc", "--noEmit"], {
+    const proc = Bun.spawn([bunExecutable(), "x", "tsc", "--noEmit"], {
       cwd: cellDir,
       stdio: ["inherit", "inherit", "inherit"],
     });

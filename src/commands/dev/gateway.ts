@@ -18,8 +18,8 @@ import {
   startMinIO,
   waitForPort,
 } from "../../local/docker";
-import { isDynamoDBReady, ensureLocalTables, type LocalTableEntry } from "../../local/dynamodb-local";
-import { isMinIOReady, ensureLocalBuckets } from "../../local/minio-local";
+import { waitForDynamoDBApi, ensureLocalTables, type LocalTableEntry } from "../../local/dynamodb-local";
+import { waitForMinIOS3Api, ensureLocalBuckets } from "../../local/minio-local";
 import {
   buildOAuthAuthorizationServerMetadata,
   buildOAuthProtectedResourceMetadata,
@@ -199,14 +199,7 @@ async function ensureDockerResources(
       throw new Error("DynamoDB Local did not become ready in time");
     }
     dynamoEndpoint = `http://localhost:${options.dynamodbPort}`;
-    // DynamoDB Local may accept TCP before the API is ready; retry isDynamoDBReady
-    for (let i = 0; i < 30; i++) {
-      if (await isDynamoDBReady(dynamoEndpoint)) break;
-      await Bun.sleep(500);
-      if (i === 29) {
-        throw new Error("DynamoDB endpoint not accepting requests");
-      }
-    }
+    await waitForDynamoDBApi(dynamoEndpoint);
     const tablesList: LocalTableEntry[] = [];
     for (const cell of cells) {
       if (!cell.config.tables) continue;
@@ -230,14 +223,7 @@ async function ensureDockerResources(
       throw new Error("MinIO did not become ready in time");
     }
     s3Endpoint = `http://localhost:${options.minioPort}`;
-    // MinIO may accept TCP before the S3 API is ready; retry isMinIOReady
-    for (let i = 0; i < 30; i++) {
-      if (await isMinIOReady(s3Endpoint)) break;
-      await Bun.sleep(500);
-      if (i === 29) {
-        throw new Error("MinIO endpoint not accepting S3 requests");
-      }
-    }
+    await waitForMinIOS3Api(s3Endpoint);
     const bucketNames: string[] = [];
     for (const cell of cells) {
       if (!cell.config.buckets) continue;
