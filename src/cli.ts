@@ -8,7 +8,7 @@ import { testUnitCommand, testE2eCommand } from "./commands/test";
 import { typecheckCommand } from "./commands/typecheck";
 import { lintCommand } from "./commands/lint";
 import { deployCommand } from "./commands/deploy";
-import { listCellsCommand } from "./commands/cell";
+import { createCellCommand, listCellsCommand } from "./commands/cell";
 import { initCommand, resolvePackageScopeForInit } from "./commands/init";
 import { getOtaviaPackageVersion } from "./package-version";
 
@@ -172,6 +172,15 @@ aws.command("login").description("AWS login").action(async () => { await awsLogi
 aws.command("logout").description("AWS logout").action(async () => { await awsLogoutCommand(process.cwd()); });
 
 const cell = program.command("cell").description("List and manage cells");
+cell
+  .command("create")
+  .description("Scaffold cells/<mount> and register the cell in otavia.yaml")
+  .argument("<mount>", "Mount segment (URL path prefix), e.g. billing")
+  .option("--force", "Overwrite cells/<mount> if cell.yaml already exists")
+  .option("--scope <scope>", "Package scope (default: inferred from existing cells, e.g. acme or @acme)")
+  .action((mount: string, options: { force?: boolean; scope?: string }) => {
+    createCellCommand(process.cwd(), mount, { force: options.force, scope: options.scope });
+  });
 cell
   .command("list")
   .description("List cells from otavia.yaml and their resolved directories")

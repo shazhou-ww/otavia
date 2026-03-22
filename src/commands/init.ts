@@ -8,6 +8,7 @@ import {
   normalizePackageScope,
   scopedPackageName,
 } from "../utils/package-scope";
+import { scaffoldCellFiles } from "./cell-scaffold";
 
 function initGitignoreLines(): string[] {
   return loadTemplate("init/gitignore-lines.txt")
@@ -71,7 +72,6 @@ export function initCommand(
 
   mkdirSync(resolve(root, "packages"), { recursive: true });
   mkdirSync(resolve(root, APPS_MAIN), { recursive: true });
-  mkdirSync(resolve(root, "cells", HELLO_MOUNT), { recursive: true });
 
   const packagesReadme = resolve(root, "packages", "README.md");
   if (!existsSync(packagesReadme) || options.force) {
@@ -159,74 +159,9 @@ export function initCommand(
     },
   });
 
+  scaffoldCellFiles(root, HELLO_MOUNT, helloPkg, { force: options.force });
   const cellDir = resolve(root, "cells", HELLO_MOUNT);
   const cellYamlPath = resolve(cellDir, "cell.yaml");
-  if (!existsSync(cellYamlPath) || options.force) {
-    writeFileSync(
-      cellYamlPath,
-      loadRenderedTemplate("init/cell-hello/cell.yaml.tmpl", { helloMount: HELLO_MOUNT }),
-      "utf-8"
-    );
-  }
-
-  mkdirSync(resolve(cellDir, "backend"), { recursive: true });
-  mkdirSync(resolve(cellDir, "frontend"), { recursive: true });
-
-  // React on the cell (devDependencies): loaded by otavia dev main shell via @vitejs/plugin-react. Not backend / Lambda zip.
-  writeJson(resolve(cellDir, "package.json"), {
-    name: helloPkg,
-    version: "0.1.0",
-    private: true,
-    type: "module",
-    exports: {
-      "./backend": "./backend/app.ts",
-      "./frontend": "./frontend/shell.tsx",
-    },
-    dependencies: {
-      hono: "^4.6.0",
-    },
-    devDependencies: {
-      "@types/bun": "^1.3.11",
-      typescript: "^5.8.3",
-      "react": "^18.3.1",
-      "react-dom": "^18.3.1",
-      "@types/react": "^18.3.12",
-      "@types/react-dom": "^18.3.1",
-    },
-  });
-
-  writeFileSync(
-    resolve(cellDir, "backend", "app.ts"),
-    loadRenderedTemplate("init/cell-hello/backend/app.ts.tmpl", { helloPkg }),
-    "utf-8"
-  );
-
-  writeFileSync(
-    resolve(cellDir, "backend", "handler.ts"),
-    loadTemplate("init/cell-hello/backend/handler.ts"),
-    "utf-8"
-  );
-
-  writeFileSync(
-    resolve(cellDir, "frontend", "shell.tsx"),
-    loadRenderedTemplate("init/cell-hello/frontend/shell.tsx.tmpl", { helloPkg }),
-    "utf-8"
-  );
-
-  writeJson(resolve(cellDir, "tsconfig.json"), {
-    compilerOptions: {
-      module: "ESNext",
-      target: "ES2022",
-      lib: ["ES2022", "DOM"],
-      moduleResolution: "bundler",
-      jsx: "react-jsx",
-      strict: true,
-      skipLibCheck: true,
-      noEmit: true,
-      types: ["bun"],
-    },
-    include: ["backend/**/*.ts", "frontend/**/*.ts", "frontend/**/*.tsx"],
-  });
 
   mergeGitignore(root);
 
