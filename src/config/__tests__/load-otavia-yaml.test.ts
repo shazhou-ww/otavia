@@ -1,0 +1,492 @@
+import { describe, expect, test } from "bun:test";
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { loadOtaviaYaml } from "../load-otavia-yaml.js";
+import { isEnvRef, isParamRef, isSecretRef } from "../cell-yaml-schema.js";
+
+function writeYaml(dir: string, content: string) {
+  const filePath = path.join(dir, "otavia.yaml");
+  fs.writeFileSync(filePath, content, "utf-8");
+  return filePath;
+}
+
+describe("loadOtaviaYaml", () => {
+  test("returns parsed object when valid otavia.yaml exists", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: my-stack
+cells:
+  - cell-a
+  - cell-b
+domain:
+  host: example.com
+  dns:
+    provider: route53
+    zone: example.com
+    zoneId: Z123
+params:
+  foo: bar
+`
+      );
+      const result = loadOtaviaYaml(tmp);
+      expect(result.stackName).toBe("my-stack");
+      expect(result.cells).toEqual({ "cell-a": "@otavia/cell-a", "cell-b": "@otavia/cell-b" });
+      expect(result.cellsList).toEqual([
+        { mount: "cell-a", package: "@otavia/cell-a" },
+        { mount: "cell-b", package: "@otavia/cell-b" },
+      ]);
+      expect(result.domain.host).toBe("example.com");
+      expect(result.domain.dns?.provider).toBe("route53");
+      expect(result.domain.dns?.zone).toBe("example.com");
+      expect(result.domain.dns?.zoneId).toBe("Z123");
+      expect(result.params).toEqual({ foo: "bar" });
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("parses defaultCell when configured", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: my-stack
+defaultCell: drive
+cells:
+  sso: "@otavia/sso"
+  drive: "@otavia/drive"
+domain:
+  host: example.com
+`
+      );
+      const result = loadOtaviaYaml(tmp);
+      expect(result.defaultCell).toBe("drive");
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("parses cells as object (mount -> package)", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: my-stack
+cells:
+  sso: "@otavia/sso"
+  drive: "@otavia/drive"
+domain:
+  host: example.com
+`
+      );
+      const result = loadOtaviaYaml(tmp);
+      expect(result.cells).toEqual({ sso: "@otavia/sso", drive: "@otavia/drive" });
+      expect(result.cellsList).toEqual([
+        { mount: "sso", package: "@otavia/sso" },
+        { mount: "drive", package: "@otavia/drive" },
+      ]);
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("parses cells object values as { package, params }", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: my-stack
+cells:
+  sso:
+    package: "@otavia/sso"
+    params:
+      issuer: "https://issuer.example.com"
+  drive:
+    package: "@otavia/drive"
+domain:
+  host: example.com
+`
+      );
+      const result = loadOtaviaYaml(tmp);
+      expect(result.cells).toEqual({ sso: "@otavia/sso", drive: "@otavia/drive" });
+      expect(result.cellsList).toEqual([
+        {
+          mount: "sso",
+          package: "@otavia/sso",
+          params: { issuer: "https://issuer.example.com" },
+        },
+        {
+          mount: "drive",
+          package: "@otavia/drive",
+          params: undefined,
+        },
+      ]);
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("parses canonical cells list with package/mount/params", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: my-stack
+cells:
+  - package: "@otavia/sso"
+    mount: "auth"
+    params:
+      issuer: "https://issuer.example.com"
+  - package: "@otavia/drive"
+domain:
+  host: example.com
+`
+      );
+      const result = loadOtaviaYaml(tmp);
+      expect(result.cells).toEqual({ auth: "@otavia/sso", drive: "@otavia/drive" });
+      expect(result.cellsList).toEqual([
+        {
+          mount: "auth",
+          package: "@otavia/sso",
+          params: { issuer: "https://issuer.example.com" },
+        },
+        {
+          mount: "drive",
+          package: "@otavia/drive",
+          params: undefined,
+        },
+      ]);
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("parses !Env and !Secret in otavia params", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: my-stack
+cells:
+  sso: "@otavia/sso"
+domain:
+  host: example.com
+params:
+  SSO_BASE_URL: !Env SSO_BASE_URL
+  BFL_API_KEY: !Secret BFL_API_KEY
+`
+      );
+      const result = loadOtaviaYaml(tmp);
+      const ssoBaseUrl = result.params?.SSO_BASE_URL;
+      const bflApiKey = result.params?.BFL_API_KEY;
+      expect(isEnvRef(ssoBaseUrl)).toBe(true);
+      expect(isSecretRef(bflApiKey)).toBe(true);
+      if (isEnvRef(ssoBaseUrl)) {
+        expect(ssoBaseUrl.env).toBe("SSO_BASE_URL");
+      }
+      if (isSecretRef(bflApiKey)) {
+        expect(bflApiKey.secret).toBe("BFL_API_KEY");
+      }
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("parses !Param in cell-level params", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: my-stack
+cells:
+  - package: "@otavia/artist"
+    mount: "artist"
+    params:
+      BFL_API_KEY: !Param BFL_API_KEY
+domain:
+  host: example.com
+params:
+  BFL_API_KEY: !Secret BFL_API_KEY
+`
+      );
+      const result = loadOtaviaYaml(tmp);
+      const bflApiKey = result.cellsList[0]?.params?.BFL_API_KEY;
+      expect(isParamRef(bflApiKey)).toBe(true);
+      if (isParamRef(bflApiKey)) {
+        expect(bflApiKey.param).toBe("BFL_API_KEY");
+      }
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("throws when top-level params uses !Param", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: my-stack
+cells:
+  sso: "@otavia/sso"
+domain:
+  host: example.com
+params:
+  SSO_BASE_URL: !Param OTHER_KEY
+`
+      );
+      expect(() => loadOtaviaYaml(tmp)).toThrow(
+        "otavia.yaml: params.SSO_BASE_URL cannot use !Param; top-level params only allow plain values, !Env, !Secret"
+      );
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("throws when cell-level params uses !Env/!Secret", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: my-stack
+cells:
+  - package: "@otavia/sso"
+    mount: "sso"
+    params:
+      AUTH_COOKIE_DOMAIN: !Env AUTH_COOKIE_DOMAIN
+domain:
+  host: example.com
+`
+      );
+      expect(() => loadOtaviaYaml(tmp)).toThrow(
+        'otavia.yaml: cells["sso"].params.AUTH_COOKIE_DOMAIN cannot use !Env/!Secret; use !Param to reference top-level params'
+      );
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("throws when stackName is missing or empty", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName:
+cells: [a]
+domain:
+  host: x.com
+`
+      );
+      expect(() => loadOtaviaYaml(tmp)).toThrow("otavia.yaml: missing stackName");
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("throws when stackName is empty string", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: ""
+cells: [a]
+domain:
+  host: x.com
+`
+      );
+      expect(() => loadOtaviaYaml(tmp)).toThrow("otavia.yaml: missing stackName");
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("throws when cells is missing or empty array", () => {
+    const tmpMissing = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    const tmpEmpty = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmpMissing,
+        `
+stackName: s
+domain:
+  host: x.com
+`
+      );
+      expect(() => loadOtaviaYaml(tmpMissing)).toThrow("otavia.yaml: missing cells");
+
+      writeYaml(
+        tmpEmpty,
+        `
+stackName: s
+cells: []
+domain:
+  host: x.com
+`
+      );
+      expect(() => loadOtaviaYaml(tmpEmpty)).toThrow("otavia.yaml: cells must be a non-empty array or object");
+    } finally {
+      fs.rmSync(tmpMissing, { recursive: true });
+      fs.rmSync(tmpEmpty, { recursive: true });
+    }
+  });
+
+  test("throws when domain or domain.host is missing", () => {
+    const tmpNoDomain = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    const tmpNoHost = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmpNoDomain,
+        `
+stackName: s
+cells: [a]
+`
+      );
+      expect(() => loadOtaviaYaml(tmpNoDomain)).toThrow("otavia.yaml: missing domain");
+
+      writeYaml(
+        tmpNoHost,
+        `
+stackName: s
+cells: [a]
+domain: {}
+`
+      );
+      expect(() => loadOtaviaYaml(tmpNoHost)).toThrow("otavia.yaml: missing domain.host");
+    } finally {
+      fs.rmSync(tmpNoDomain, { recursive: true });
+      fs.rmSync(tmpNoHost, { recursive: true });
+    }
+  });
+
+  test("throws when defaultCell is not a string", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: s
+defaultCell: 123
+cells: [sso]
+domain:
+  host: x.com
+`
+      );
+      expect(() => loadOtaviaYaml(tmp)).toThrow("otavia.yaml: defaultCell must be a string");
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("throws when defaultCell is not in cells", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: s
+defaultCell: drive
+cells: [sso]
+domain:
+  host: x.com
+`
+      );
+      expect(() => loadOtaviaYaml(tmp)).toThrow(
+        'otavia.yaml: defaultCell "drive" must match one of configured cell mounts'
+      );
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("parses oauth callback config", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: my-stack
+cells:
+  sso: "@otavia/sso"
+domain:
+  host: example.com
+oauth:
+  callback:
+    cell: sso
+    path: /oauth/callback
+`
+      );
+      const result = loadOtaviaYaml(tmp);
+      expect(result.oauth).toEqual({
+        callback: {
+          cell: "sso",
+          path: "/oauth/callback",
+        },
+      });
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("throws when oauth callback path does not start with slash", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: my-stack
+cells:
+  sso: "@otavia/sso"
+domain:
+  host: example.com
+oauth:
+  callback:
+    cell: sso
+    path: oauth/callback
+`
+      );
+      expect(() => loadOtaviaYaml(tmp)).toThrow(
+        "otavia.yaml: oauth.callback.path must start with '/'"
+      );
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  test("throws when oauth callback cell is not in cells", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-test-"));
+    try {
+      writeYaml(
+        tmp,
+        `
+stackName: my-stack
+cells:
+  sso: "@otavia/sso"
+domain:
+  host: example.com
+oauth:
+  callback:
+    cell: drive
+    path: /oauth/callback
+`
+      );
+      expect(() => loadOtaviaYaml(tmp)).toThrow(
+        'otavia.yaml: oauth.callback.cell "drive" must match one of configured cells'
+      );
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+});

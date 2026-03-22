@@ -1,0 +1,8 @@
+name: gateway
+backend:
+  runtime: bun
+  entries:
+    api:
+      handler: backend/handler.ts
+      routes:
+        - /oauth/server/callback

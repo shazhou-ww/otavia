@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.otavia/
+*.log
+.DS_Store
