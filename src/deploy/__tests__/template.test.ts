@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { generateTemplate } from "../template.js";
+import { generateTemplate } from "../template";
 
 function mainConfigDir(root: string): string {
   return path.join(root, "apps", "main");

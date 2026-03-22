@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { loadOtaviaYaml } from "../load-otavia-yaml.js";
-import { isEnvRef, isParamRef, isSecretRef } from "../cell-yaml-schema.js";
+import { loadOtaviaYaml } from "../load-otavia-yaml";
+import { isEnvRef, isParamRef, isSecretRef } from "../cell-yaml-schema";
 
 function writeYaml(dir: string, content: string) {
   const filePath = path.join(dir, "otavia.yaml");

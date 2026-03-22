@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { parseDocument } from "yaml";
-import type { CellConfig } from "./cell-yaml-schema.js";
+import type { CellConfig } from "./cell-yaml-schema";
 
 const OAUTH_ROLES = new Set(["resource_server", "authorization_server", "both"]);
 

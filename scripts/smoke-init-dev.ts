@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync
 import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { initCommand } from "../src/commands/init.js";
+import { initCommand } from "../src/commands/init";
 
 /** Repo root (parent of scripts/). */
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");

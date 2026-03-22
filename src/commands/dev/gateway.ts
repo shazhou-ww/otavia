@@ -2,24 +2,24 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Hono } from "hono";
-import type { OtaviaYaml } from "../../config/otavia-yaml-schema.js";
-import type { CellConfig } from "../../config/cell-yaml-schema.js";
-import { loadOtaviaYamlAt } from "../../config/load-otavia-yaml.js";
-import { loadCellConfig } from "../../config/load-cell-yaml.js";
-import { resolveCellDir } from "../../config/resolve-cell-dir.js";
-import { logOtaviaResolve } from "../../config/resolve-otavia-workspace.js";
-import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../../config/resolve-params.js";
-import { loadEnvForCell } from "../../utils/env.js";
-import { tablePhysicalName, bucketPhysicalName } from "../../config/resource-names.js";
-import { buildForwardUrlForCellMount } from "./forward-url.js";
+import type { OtaviaYaml } from "../../config/otavia-yaml-schema";
+import type { CellConfig } from "../../config/cell-yaml-schema";
+import { loadOtaviaYamlAt } from "../../config/load-otavia-yaml";
+import { loadCellConfig } from "../../config/load-cell-yaml";
+import { resolveCellDir } from "../../config/resolve-cell-dir";
+import { logOtaviaResolve } from "../../config/resolve-otavia-workspace";
+import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../../config/resolve-params";
+import { loadEnvForCell } from "../../utils/env";
+import { tablePhysicalName, bucketPhysicalName } from "../../config/resource-names";
+import { buildForwardUrlForCellMount } from "./forward-url";
 import {
   isDockerRunning,
   startDynamoDB,
   startMinIO,
   waitForPort,
-} from "../../local/docker.js";
-import { isDynamoDBReady, ensureLocalTables, type LocalTableEntry } from "../../local/dynamodb-local.js";
-import { isMinIOReady, ensureLocalBuckets } from "../../local/minio-local.js";
+} from "../../local/docker";
+import { isDynamoDBReady, ensureLocalTables, type LocalTableEntry } from "../../local/dynamodb-local";
+import { isMinIOReady, ensureLocalBuckets } from "../../local/minio-local";
 import {
   buildOAuthAuthorizationServerMetadata,
   buildOAuthProtectedResourceMetadata,
@@ -27,8 +27,8 @@ import {
   extractMountFromAuthorizationServerWellKnownPath,
   extractProtectedResourcePathFromWellKnown,
   getRequestOrigin,
-} from "./well-known.js";
-import { resolveRootRedirectMount } from "./mount-selection.js";
+} from "./well-known";
+import { resolveRootRedirectMount } from "./mount-selection";
 
 const DYNAMODB_CONTAINER = "otavia-dynamodb-dev";
 const MINIO_CONTAINER = "otavia-minio-dev";

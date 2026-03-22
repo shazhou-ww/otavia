@@ -4,7 +4,7 @@ import {
   deriveFrontendModuleProxySpecs,
   deriveFrontendRouteRulesFromCellConfig,
   deriveRouteRulesFromCellConfig,
-} from "../vite-dev.js";
+} from "../vite-dev";
 
 describe("deriveRouteRulesFromCellConfig", () => {
   test("converts backend routes into exact/prefix rules", () => {

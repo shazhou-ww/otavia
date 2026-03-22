@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace.js";
+import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace";
 
 /** Parse .env file content into a key-value map. */
 function parseEnvFile(content: string): Record<string, string> {

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
-import { resolveCellDir } from "../resolve-cell-dir.js";
+import { resolveCellDir } from "../resolve-cell-dir";
 
 function writeCellYaml(dir: string) {
   writeFileSync(join(dir, "cell.yaml"), "name: test\n", "utf-8");

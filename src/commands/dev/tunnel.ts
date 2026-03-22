@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { homedir } from "node:os";
-import { loadOtaviaYaml } from "../../config/load-otavia-yaml.js";
+import { loadOtaviaYaml } from "../../config/load-otavia-yaml";
 import concurrently from "concurrently";
 import { parse as parseYaml } from "yaml";
 
@@ -107,7 +107,7 @@ export async function startTunnel(
         process.env.OTAVIA_TUNNEL_DEV_ROOT = zone;
       }
     }
-    const { setupCommand } = await import("../setup.js");
+    const { setupCommand } = await import("../setup");
     await setupCommand(monorepoRoot, { tunnel: { mode: "cli", enabled: true } });
     if (!existsSync(tunnelConfigPath)) {
       throw new Error(

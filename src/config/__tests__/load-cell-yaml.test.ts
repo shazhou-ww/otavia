@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { loadCellConfig } from "../load-cell-yaml.js";
+import { loadCellConfig } from "../load-cell-yaml";
 
 function writeCellYaml(dir: string, content: string) {
   const filePath = path.join(dir, "cell.yaml");

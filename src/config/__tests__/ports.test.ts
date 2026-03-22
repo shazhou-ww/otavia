@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { resolvePortsFromEnv, resolvePortsFromPortBase } from "../ports.js";
+import { resolvePortsFromEnv, resolvePortsFromPortBase } from "../ports";
 
 describe("resolvePortsFromPortBase", () => {
   test("derives dev ports from PORT_BASE + dev offsets", () => {

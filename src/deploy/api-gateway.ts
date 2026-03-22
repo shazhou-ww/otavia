@@ -1,5 +1,5 @@
-import type { CfnFragment } from "./types.js";
-import { toPascalCase } from "./types.js";
+import type { CfnFragment } from "./types";
+import { toPascalCase } from "./types";
 
 export interface HttpApiRoute {
   /** Logical id of the Lambda function (e.g. SsoApiFunction) */

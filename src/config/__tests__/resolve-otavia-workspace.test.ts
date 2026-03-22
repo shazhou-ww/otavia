@@ -6,7 +6,7 @@ import {
   findWorkspaceRootWithWorkspaces,
   monorepoRootForCells,
   resolveOtaviaWorkspacePaths,
-} from "../resolve-otavia-workspace.js";
+} from "../resolve-otavia-workspace";
 
 const MINIMAL_OTAVIA = "stackName: s\ndomain:\n  host: h\ncells:\n  x: '@otavia/x'\n";
 

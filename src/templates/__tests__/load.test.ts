@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { loadTemplate, renderTemplate } from "../load.js";
+import { loadTemplate, renderTemplate } from "../load";
 
 describe("renderTemplate", () => {
   test("replaces placeholders", () => {

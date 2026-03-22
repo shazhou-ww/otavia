@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
-import { listCellsCommand } from "../cell.js";
+import { listCellsCommand } from "../cell";
 
 describe("listCellsCommand", () => {
   test("prints mounts and paths for cells in otavia.yaml", () => {

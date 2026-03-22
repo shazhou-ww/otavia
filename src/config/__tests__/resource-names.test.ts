@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   bucketPhysicalName,
   tablePhysicalName,
-} from "../resource-names.js";
+} from "../resource-names";
 
 describe("tablePhysicalName", () => {
   test("returns myapp-server-next-realms for (myapp, server-next, realms)", () => {

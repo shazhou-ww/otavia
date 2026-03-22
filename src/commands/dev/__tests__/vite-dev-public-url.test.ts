@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { publicOriginDiffersFromLocalVite } from "../vite-dev.js";
+import { publicOriginDiffersFromLocalVite } from "../vite-dev";
 
 describe("publicOriginDiffersFromLocalVite", () => {
   test("false when URL matches loopback and vite port", () => {

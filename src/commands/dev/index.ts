@@ -1,11 +1,11 @@
-import { checkAwsCredentials } from "./aws-auth.js";
-import { runGatewayDev } from "./dev/gateway.js";
-import { startViteDev } from "./dev/vite-dev.js";
-import { startTunnel } from "./dev/tunnel.js";
-import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace.js";
-import { getOtaviaPackageVersion } from "../package-version.js";
-import { loadEnvForCell } from "../utils/env.js";
-import { resolvePortsFromEnv } from "../config/ports.js";
+import { checkAwsCredentials } from "../aws-auth";
+import { runGatewayDev } from "./gateway";
+import { startViteDev } from "./vite-dev";
+import { startTunnel } from "./tunnel";
+import { resolveOtaviaWorkspacePaths } from "../../config/resolve-otavia-workspace";
+import { getOtaviaPackageVersion } from "../../package-version";
+import { loadEnvForCell } from "../../utils/env";
+import { resolvePortsFromEnv } from "../../config/ports";
 
 export type DevTunnelIntent =
   | { mode: "off" }

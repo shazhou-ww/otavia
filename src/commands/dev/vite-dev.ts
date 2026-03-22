@@ -1,12 +1,12 @@
 import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
-import { loadOtaviaYamlAt } from "../../config/load-otavia-yaml.js";
-import { loadCellConfig } from "../../config/load-cell-yaml.js";
-import type { CellConfig } from "../../config/cell-yaml-schema.js";
-import { resolveCellDir } from "../../config/resolve-cell-dir.js";
-import { resolveRootRedirectMount } from "./mount-selection.js";
-import { loadRenderedTemplate, loadTemplate } from "../../templates/load.js";
+import { loadOtaviaYamlAt } from "../../config/load-otavia-yaml";
+import { loadCellConfig } from "../../config/load-cell-yaml";
+import type { CellConfig } from "../../config/cell-yaml-schema";
+import { resolveCellDir } from "../../config/resolve-cell-dir";
+import { resolveRootRedirectMount } from "./mount-selection";
+import { loadRenderedTemplate, loadTemplate } from "../../templates/load";
 
 export interface ViteDevHandle {
   stop: () => void;

@@ -5,7 +5,7 @@ import {
   MissingParamsError,
   mergeParams,
   resolveParams,
-} from "../resolve-params.js";
+} from "../resolve-params";
 
 describe("mergeParams", () => {
   test("stack has A, B; cell has B, C → result has A(from stack), B(from cell), C(from cell)", () => {

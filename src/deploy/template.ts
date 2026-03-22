@@ -1,27 +1,27 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { stringify } from "yaml";
-import type { OtaviaYaml } from "../config/otavia-yaml-schema.js";
-import type { CellConfig } from "../config/cell-yaml-schema.js";
-import { loadOtaviaYamlAt } from "../config/load-otavia-yaml.js";
-import { loadCellConfig } from "../config/load-cell-yaml.js";
-import { resolveCellDir } from "../config/resolve-cell-dir.js";
-import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../config/resolve-params.js";
-import { loadEnvForCell } from "../utils/env.js";
-import { tablePhysicalName, bucketPhysicalName } from "../config/resource-names.js";
-import { generateDynamoDBTable } from "./dynamodb.js";
-import { generateBucket, generateFrontendBucket } from "./s3.js";
-import { generateLambdaFragment } from "./lambda.js";
-import { generateHttpApi } from "./api-gateway.js";
-import { generateCloudFrontDistribution } from "./cloudfront.js";
+import type { OtaviaYaml } from "../config/otavia-yaml-schema";
+import type { CellConfig } from "../config/cell-yaml-schema";
+import { loadOtaviaYamlAt } from "../config/load-otavia-yaml";
+import { loadCellConfig } from "../config/load-cell-yaml";
+import { resolveCellDir } from "../config/resolve-cell-dir";
+import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../config/resolve-params";
+import { loadEnvForCell } from "../utils/env";
+import { tablePhysicalName, bucketPhysicalName } from "../config/resource-names";
+import { generateDynamoDBTable } from "./dynamodb";
+import { generateBucket, generateFrontendBucket } from "./s3";
+import { generateLambdaFragment } from "./lambda";
+import { generateHttpApi } from "./api-gateway";
+import { generateCloudFrontDistribution } from "./cloudfront";
 import {
   APPSYNC_EVENT_API_LOGICAL_ID,
   generateAppSyncChannelNamespace,
   generateAppSyncEventApi,
   generateAppSyncEventApiKey,
-} from "./appsync-events.js";
-import type { CfnFragment } from "./types.js";
-import { toPascalCase } from "./types.js";
+} from "./appsync-events";
+import type { CfnFragment } from "./types";
+import { toPascalCase } from "./types";
 
 /** Build ref map: short logical id -> prefixed logical id for a cell's fragments */
 function buildRefMap(fragments: CfnFragment[], prefix: string): Map<string, string> {

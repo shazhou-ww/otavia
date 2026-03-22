@@ -1,16 +1,16 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
-import { setupCommand, type SetupTunnelIntent } from "./commands/setup.js";
-import { cleanCommand } from "./commands/clean.js";
-import { awsLoginCommand, awsLogoutCommand } from "./commands/aws.js";
-import { devCommand } from "./commands/dev.js";
-import { testUnitCommand, testE2eCommand } from "./commands/test.js";
-import { typecheckCommand } from "./commands/typecheck.js";
-import { lintCommand } from "./commands/lint.js";
-import { deployCommand } from "./commands/deploy.js";
-import { listCellsCommand } from "./commands/cell.js";
-import { initCommand, resolvePackageScopeForInit } from "./commands/init.js";
-import { getOtaviaPackageVersion } from "./package-version.js";
+import { setupCommand, type SetupTunnelIntent } from "./commands/setup";
+import { cleanCommand } from "./commands/clean";
+import { awsLoginCommand, awsLogoutCommand } from "./commands/aws";
+import { devCommand } from "./commands/dev";
+import { testUnitCommand, testE2eCommand } from "./commands/test";
+import { typecheckCommand } from "./commands/typecheck";
+import { lintCommand } from "./commands/lint";
+import { deployCommand } from "./commands/deploy";
+import { listCellsCommand } from "./commands/cell";
+import { initCommand, resolvePackageScopeForInit } from "./commands/init";
+import { getOtaviaPackageVersion } from "./package-version";
 
 const program = new Command();
 

@@ -7,7 +7,7 @@ import {
   type KeySchemaElement,
   ListTablesCommand,
 } from "@aws-sdk/client-dynamodb";
-import type { TableConfig } from "../config/cell-yaml-schema.js";
+import type { TableConfig } from "../config/cell-yaml-schema";
 
 function attrType(t: string): "S" | "N" | "B" {
   const upper = t.toUpperCase();

@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
-import { loadEnvForCell } from "./env.js";
+import { loadEnvForCell } from "./env";
 
 function write(path: string, content: string): void {
   writeFileSync(path, content.trim() + "\n", "utf-8");

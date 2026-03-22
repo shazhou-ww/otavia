@@ -1,6 +1,6 @@
-import type { TableConfig } from "../config/cell-yaml-schema.js";
-import type { CfnFragment } from "./types.js";
-import { toPascalCase } from "./types.js";
+import type { TableConfig } from "../config/cell-yaml-schema";
+import type { CfnFragment } from "./types";
+import { toPascalCase } from "./types";
 
 /**
  * Generate a single DynamoDB table fragment.

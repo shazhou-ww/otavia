@@ -1,27 +1,27 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseDocument } from "yaml";
-import { loadOtaviaYamlAt } from "../config/load-otavia-yaml.js";
-import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace.js";
-import { loadCellConfig } from "../config/load-cell-yaml.js";
-import { resolveCellDir } from "../config/resolve-cell-dir.js";
-import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../config/resolve-params.js";
-import { tablePhysicalName, bucketPhysicalName } from "../config/resource-names.js";
-import { loadEnvForCell } from "../utils/env.js";
+import { loadOtaviaYamlAt } from "../config/load-otavia-yaml";
+import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace";
+import { loadCellConfig } from "../config/load-cell-yaml";
+import { resolveCellDir } from "../config/resolve-cell-dir";
+import { assertDeclaredParamsProvided, mergeParams, resolveParams } from "../config/resolve-params";
+import { tablePhysicalName, bucketPhysicalName } from "../config/resource-names";
+import { loadEnvForCell } from "../utils/env";
 import {
   isDockerRunning,
   startDynamoDB,
   startMinIO,
   waitForPort,
   stopContainer,
-} from "../local/docker.js";
+} from "../local/docker";
 import {
   isDynamoDBReady,
   ensureLocalTables,
   type LocalTableEntry,
-} from "../local/dynamodb-local.js";
-import { ensureLocalBuckets } from "../local/minio-local.js";
-import { resolvePortsFromEnv } from "../config/ports.js";
+} from "../local/dynamodb-local";
+import { ensureLocalBuckets } from "../local/minio-local";
+import { resolvePortsFromEnv } from "../config/ports";
 
 const DEFAULT_UNIT_PATTERN = "**/__tests__/*.test.ts";
 const CELL_YAML = "cell.yaml";

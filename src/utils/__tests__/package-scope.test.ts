@@ -6,7 +6,7 @@ import {
   defaultPackageScopeFromDir,
   normalizePackageScope,
   scopedPackageName,
-} from "../package-scope.js";
+} from "../package-scope";
 
 describe("normalizePackageScope", () => {
   test("accepts org with or without @", () => {

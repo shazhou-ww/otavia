@@ -20,7 +20,7 @@ export interface GenerateCloudFrontOptions {
   stackName: string;
 }
 
-import type { CfnFragment } from "./types.js";
+import type { CfnFragment } from "./types";
 
 export function generateCloudFrontDistribution(options: GenerateCloudFrontOptions): CfnFragment {
   const {

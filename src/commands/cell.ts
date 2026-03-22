@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 import { relative, resolve } from "node:path";
-import { loadOtaviaYamlAt } from "../config/load-otavia-yaml.js";
-import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace.js";
-import { resolveCellDir } from "../config/resolve-cell-dir.js";
+import { loadOtaviaYamlAt } from "../config/load-otavia-yaml";
+import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace";
+import { resolveCellDir } from "../config/resolve-cell-dir";
 
 export function listCellsCommand(rootDir: string): void {
   const { monorepoRoot, configDir } = resolveOtaviaWorkspacePaths(rootDir);

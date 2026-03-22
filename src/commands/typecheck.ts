@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { loadOtaviaYamlAt } from "../config/load-otavia-yaml.js";
-import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace.js";
-import { resolveCellDir } from "../config/resolve-cell-dir.js";
+import { loadOtaviaYamlAt } from "../config/load-otavia-yaml";
+import { resolveOtaviaWorkspacePaths } from "../config/resolve-otavia-workspace";
+import { resolveCellDir } from "../config/resolve-cell-dir";
 
 /**
  * Run tsc --noEmit in each resolved cellDir. Aggregate exit codes; if any cell

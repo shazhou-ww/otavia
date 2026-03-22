@@ -5,7 +5,7 @@ import {
   createOAuthDiscoveryRegistry,
   extractMountFromAuthorizationServerWellKnownPath,
   extractProtectedResourcePathFromWellKnown,
-} from "../well-known.js";
+} from "../well-known";
 
 describe("extractMountFromAuthorizationServerWellKnownPath", () => {
   test("extracts mount from RFC 8414 well-known path suffix", () => {

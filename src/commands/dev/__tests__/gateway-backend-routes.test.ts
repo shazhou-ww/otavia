@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
-import { loadCellConfig } from "../../../config/load-cell-yaml.js";
+import { loadCellConfig } from "../../../config/load-cell-yaml";
 
 describe("gateway backend route declarations", () => {
   test("includes oauth server callback route for popup flow", () => {

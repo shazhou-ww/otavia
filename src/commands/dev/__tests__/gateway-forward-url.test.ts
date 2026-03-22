@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildForwardUrlForCellMount } from "../forward-url.js";
+import { buildForwardUrlForCellMount } from "../forward-url";
 
 describe("buildForwardUrlForCellMount", () => {
   test("preserves query string when forwarding nested mount paths", () => {

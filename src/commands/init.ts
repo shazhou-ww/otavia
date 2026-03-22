@@ -1,13 +1,13 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
-import { loadOtaviaYaml } from "../config/load-otavia-yaml.js";
-import { getOtaviaPackageVersion } from "../package-version.js";
-import { loadRenderedTemplate, loadTemplate } from "../templates/load.js";
+import { loadOtaviaYaml } from "../config/load-otavia-yaml";
+import { getOtaviaPackageVersion } from "../package-version";
+import { loadRenderedTemplate, loadTemplate } from "../templates/load";
 import {
   defaultPackageScopeFromDir,
   normalizePackageScope,
   scopedPackageName,
-} from "../utils/package-scope.js";
+} from "../utils/package-scope";
 
 function initGitignoreLines(): string[] {
   return loadTemplate("init/gitignore-lines.txt")

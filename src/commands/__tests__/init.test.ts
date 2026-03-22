@@ -2,8 +2,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
-import { loadOtaviaYaml } from "../../config/load-otavia-yaml.js";
-import { initCommand } from "../init.js";
+import { loadOtaviaYaml } from "../../config/load-otavia-yaml";
+import { initCommand } from "../init";
 
 describe("initCommand", () => {
   test("creates monorepo packages, apps/main, hello cell, and valid otavia.yaml", () => {
