@@ -31,8 +31,13 @@ function normalizeStage(stage?: string): EnvStage | undefined {
   return undefined;
 }
 
-function resolveCellDir(rootDir: string, cellIdOrDir: string): string {
-  return isAbsolute(cellIdOrDir) ? cellIdOrDir : resolve(rootDir, "apps", cellIdOrDir);
+function resolveCellDirForEnv(rootDir: string, cellIdOrDir: string): string {
+  if (isAbsolute(cellIdOrDir)) return cellIdOrDir;
+  const cellsPath = resolve(rootDir, "cells", cellIdOrDir);
+  const appsPath = resolve(rootDir, "apps", cellIdOrDir);
+  if (existsSync(cellsPath)) return cellsPath;
+  if (existsSync(appsPath)) return appsPath;
+  return cellsPath;
 }
 
 function loadEnvFile(path: string, target: Record<string, string>): void {
@@ -57,7 +62,7 @@ export function loadEnvForCell(
   const rootEnv = resolve(rootDir, ".env");
   const rootStageEnv = stage ? resolve(rootDir, `.env.${stage}`) : "";
   const rootEnvLocal = resolve(rootDir, ".env.local");
-  const cellDir = resolveCellDir(rootDir, cellIdOrDir);
+  const cellDir = resolveCellDirForEnv(rootDir, cellIdOrDir);
   const cellEnv = resolve(cellDir, ".env");
   const cellStageEnv = stage ? resolve(cellDir, `.env.${stage}`) : "";
   const cellEnvLocal = resolve(cellDir, ".env.local");

@@ -9,6 +9,7 @@ import { testUnitCommand, testE2eCommand } from "./commands/test.js";
 import { typecheckCommand } from "./commands/typecheck.js";
 import { lintCommand } from "./commands/lint.js";
 import { deployCommand } from "./commands/deploy.js";
+import { listCellsCommand } from "./commands/cell.js";
 
 const program = new Command();
 
@@ -118,6 +119,14 @@ program.command("clean").description("Clean artifacts").action(() => {
 const aws = program.command("aws").description("AWS-related commands");
 aws.command("login").description("AWS login").action(async () => { await awsLoginCommand(process.cwd()); });
 aws.command("logout").description("AWS logout").action(async () => { await awsLogoutCommand(process.cwd()); });
+
+const cell = program.command("cell").description("List and manage cells");
+cell
+  .command("list")
+  .description("List cells from otavia.yaml and their resolved directories")
+  .action(() => {
+    listCellsCommand(process.cwd());
+  });
 
 program.parseAsync(process.argv).catch((err: unknown) => {
   console.error(err instanceof Error ? err.message : String(err));
