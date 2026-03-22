@@ -46,6 +46,32 @@ backend:
 }
 
 describe("generateTemplate", () => {
+  test("includes AppSync Event API and channel namespace when cell enables appsyncEvents", () => {
+    const rootDir = createMinimalOtaviaRoot();
+    try {
+      const ssoDir = path.join(rootDir, "apps", "sso");
+      const cellPath = path.join(ssoDir, "cell.yaml");
+      const prev = fs.readFileSync(cellPath, "utf-8");
+      fs.writeFileSync(
+        cellPath,
+        `${prev}
+appsyncEvents:
+  enabled: true
+`,
+        "utf-8"
+      );
+      const yaml = generateTemplate(rootDir);
+      expect(yaml).toContain("AWS::AppSync::Api");
+      expect(yaml).toContain("AWS::AppSync::ApiKey");
+      expect(yaml).toContain("AWS::AppSync::ChannelNamespace");
+      expect(yaml).toContain("AppSyncEventApi");
+      expect(yaml).toContain("appsync:Publish");
+      expect(yaml).toContain("APPSYNC_EVENTS_API_ID");
+    } finally {
+      fs.rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
   test("produces valid YAML with AWS::DynamoDB::Table, AWS::Lambda::Function, and AWS::ApiGatewayV2::Api", () => {
     const rootDir = createMinimalOtaviaRoot();
     try {

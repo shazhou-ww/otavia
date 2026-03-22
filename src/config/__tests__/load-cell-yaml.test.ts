@@ -131,6 +131,43 @@ runtimeParam: !Secret BFL_API_KEY
     }
   });
 
+  test("accepts appsyncEvents config", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-cell-"));
+    try {
+      writeCellYaml(
+        tmp,
+        `
+name: evt-cell
+appsyncEvents:
+  enabled: true
+  namespace: chat-room
+`
+      );
+      const result = loadCellConfig(tmp);
+      expect(result.appsyncEvents).toEqual({ enabled: true, namespace: "chat-room" });
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  test("throws when appsyncEvents.namespace is invalid", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-cell-"));
+    try {
+      writeCellYaml(
+        tmp,
+        `
+name: bad-ns
+appsyncEvents:
+  enabled: true
+  namespace: "/bad"
+`
+      );
+      expect(() => loadCellConfig(tmp)).toThrow("appsyncEvents.namespace");
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   test("accepts minimal oauth config", () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "otavia-cell-"));
     try {

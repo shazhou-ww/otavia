@@ -83,5 +83,26 @@ export function loadCellConfig(cellDir: string): CellConfig {
     }
   }
 
+  if (raw.appsyncEvents != null) {
+    if (typeof raw.appsyncEvents !== "object" || Array.isArray(raw.appsyncEvents)) {
+      throw new Error("cell.yaml: 'appsyncEvents' must be an object");
+    }
+    const ae = raw.appsyncEvents as Record<string, unknown>;
+    if (typeof ae.enabled !== "boolean") {
+      throw new Error("cell.yaml: 'appsyncEvents.enabled' must be a boolean");
+    }
+    if (ae.namespace != null) {
+      if (typeof ae.namespace !== "string" || ae.namespace.trim() === "") {
+        throw new Error("cell.yaml: 'appsyncEvents.namespace' must be a non-empty string");
+      }
+      const ns = ae.namespace.trim();
+      if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,48}[A-Za-z0-9])?$/.test(ns)) {
+        throw new Error(
+          "cell.yaml: 'appsyncEvents.namespace' must be 1–50 chars (letters, numbers, hyphens) per AppSync rules"
+        );
+      }
+    }
+  }
+
   return raw as unknown as CellConfig;
 }

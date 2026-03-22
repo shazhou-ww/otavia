@@ -6,13 +6,16 @@ export interface LambdaFragmentProps {
   runtime: string;
   timeout: number;
   memory: number;
-  envVars: Record<string, string>;
+  /** Plain strings or CloudFormation intrinsics (Ref / Fn::GetAtt). */
+  envVars: Record<string, string | Record<string, unknown>>;
   /** Logical IDs of DynamoDB table resources (e.g. SsoThreadsTable) for IAM */
   tableLogicalIds?: string[];
   /** Logical IDs of S3 bucket resources for IAM */
   bucketLogicalIds?: string[];
   /** For Secrets Manager refs: key -> secret name (cell/secretName) */
   secretRefs?: Record<string, string>;
+  /** When set, grants appsync:Publish and injects APPSYNC_EVENTS_* env for AppSync Events HTTP publish. */
+  appsyncEventApiLogicalId?: string;
 }
 
 /**
@@ -28,11 +31,17 @@ export function generateLambdaFragment(
   const functionLogicalId = `${logicalIdPrefix}${pascalEntry}Function`;
   const roleLogicalId = `${logicalIdPrefix}${pascalEntry}LambdaRole`;
 
-  const envVariables: Record<string, string> = { ...props.envVars };
+  const envVariables: Record<string, string | Record<string, unknown>> = { ...props.envVars };
   if (props.secretRefs) {
     for (const [key, secretName] of Object.entries(props.secretRefs)) {
       envVariables[key] = `{{resolve:secretsmanager:${secretName}}}`;
     }
+  }
+  const apiLogical = props.appsyncEventApiLogicalId;
+  if (apiLogical) {
+    envVariables.APPSYNC_EVENTS_API_ID = { "Fn::GetAtt": [apiLogical, "ApiId"] };
+    envVariables.APPSYNC_EVENTS_HTTP_DOMAIN = { "Fn::GetAtt": [apiLogical, "Dns.Http"] };
+    envVariables.APPSYNC_EVENTS_REALTIME_DOMAIN = { "Fn::GetAtt": [apiLogical, "Dns.Realtime"] };
   }
 
   const policyStatements: unknown[] = [
@@ -75,6 +84,19 @@ export function generateLambdaFragment(
       Effect: "Allow",
       Action: ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"],
       Resource: bucketResources,
+    });
+  }
+
+  if (apiLogical) {
+    policyStatements.push({
+      Effect: "Allow",
+      Action: "appsync:Publish",
+      Resource: {
+        "Fn::Sub": [
+          "arn:aws:appsync:${AWS::Region}:${AWS::AccountId}:apis/${ApiId}/*",
+          { ApiId: { "Fn::GetAtt": [apiLogical, "ApiId"] } },
+        ],
+      },
     });
   }
 

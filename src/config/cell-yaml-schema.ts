@@ -101,6 +101,19 @@ export interface CognitoConfig {
   clientSecret?: string;
 }
 
+/**
+ * AWS AppSync Events API: one shared Event API per stack; each cell can attach a channel namespace.
+ * Channels use paths like `/<namespace>/...` (namespace = mount or `namespace` override).
+ */
+export interface AppSyncEventsConfig {
+  enabled: boolean;
+  /**
+   * First segment of channel paths for this cell. Defaults to the cell mount name.
+   * Must match AppSync naming rules (1–50 chars, alphanumeric and hyphens).
+   */
+  namespace?: string;
+}
+
 export interface CellConfig {
   name: string;
   backend?: BackendConfig;
@@ -112,4 +125,6 @@ export interface CellConfig {
   cognito?: CognitoConfig;
   /** Declared required param keys; values are provided by otavia.yaml. */
   params?: string[];
+  /** Enable AppSync Events channel namespace for this cell (stack must include shared Event API). */
+  appsyncEvents?: AppSyncEventsConfig;
 }

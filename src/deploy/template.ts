@@ -14,6 +14,12 @@ import { generateBucket, generateFrontendBucket } from "./s3.js";
 import { generateLambdaFragment } from "./lambda.js";
 import { generateHttpApi } from "./api-gateway.js";
 import { generateCloudFrontDistribution } from "./cloudfront.js";
+import {
+  APPSYNC_EVENT_API_LOGICAL_ID,
+  generateAppSyncChannelNamespace,
+  generateAppSyncEventApi,
+  generateAppSyncEventApiKey,
+} from "./appsync-events.js";
 import type { CfnFragment } from "./types.js";
 import { toPascalCase } from "./types.js";
 
@@ -95,6 +101,13 @@ function resolvedParamsToEnv(resolved: Record<string, string | unknown>): Record
   return env;
 }
 
+function cellUsesAppSyncEvents(rootDir: string, cellPackage: string): boolean {
+  const cellDir = resolveCellDir(rootDir, cellPackage);
+  if (!existsSync(resolve(cellDir, "cell.yaml"))) return false;
+  const config = loadCellConfig(cellDir);
+  return config.appsyncEvents?.enabled === true;
+}
+
 function toResourceEnvKey(prefix: string, key: string): string {
   const normalized = key.replace(/[^A-Za-z0-9]/g, "_").toUpperCase();
   return `${prefix}${normalized}`;
@@ -126,6 +139,22 @@ export function generateTemplate(rootDir: string, opts?: { certificateArn?: stri
   const firstMount = otavia.cellsList[0]?.mount ?? "";
   const defaultCellMount = otavia.defaultCell ?? firstMount;
   const origin = domainHost ? `https://${domainHost}` : "";
+
+  let needAppSyncEventApi = false;
+  for (const cellEntry of otavia.cellsList) {
+    if (cellUsesAppSyncEvents(rootDir, cellEntry.package)) {
+      needAppSyncEventApi = true;
+      break;
+    }
+  }
+  if (needAppSyncEventApi) {
+    const apiFrag = generateAppSyncEventApi(stackName);
+    Object.assign(resources, apiFrag.Resources);
+    if (apiFrag.Outputs) Object.assign(outputs, apiFrag.Outputs);
+    const keyFrag = generateAppSyncEventApiKey(stackName);
+    Object.assign(resources, keyFrag.Resources);
+    if (keyFrag.Outputs) Object.assign(outputs, keyFrag.Outputs);
+  }
 
   for (const cellEntry of otavia.cellsList) {
     const cellDir = resolveCellDir(rootDir, cellEntry.package);
@@ -197,6 +226,8 @@ export function generateTemplate(rootDir: string, opts?: { certificateArn?: stri
       const apiRoutes: Array<{ functionLogicalId: string }> = [];
       const apiPathPatterns = new Set<string>();
 
+      const appsyncApi = config.appsyncEvents?.enabled ? APPSYNC_EVENT_API_LOGICAL_ID : undefined;
+
       for (const [entryKey, entry] of Object.entries(config.backend.entries)) {
         const frag = generateLambdaFragment(entryKey, prefix, {
           handlerPath: `build/${cellEntry.mount}/${entryKey}/code.zip`,
@@ -206,6 +237,7 @@ export function generateTemplate(rootDir: string, opts?: { certificateArn?: stri
           envVars,
           tableLogicalIds: tableLogicalIds.length > 0 ? tableLogicalIds : undefined,
           bucketLogicalIds: bucketLogicalIds.length > 0 ? bucketLogicalIds : undefined,
+          appsyncEventApiLogicalId: appsyncApi,
         });
         Object.assign(resources, frag.Resources);
         const funcLogicalId = `${prefix}${toPascalCase(entryKey)}Function`;
@@ -229,6 +261,12 @@ export function generateTemplate(rootDir: string, opts?: { certificateArn?: stri
           isApi: true,
         });
       }
+    }
+
+    if (config.appsyncEvents?.enabled) {
+      const namespaceName = config.appsyncEvents.namespace?.trim() ?? cellEntry.mount;
+      const nsFrag = generateAppSyncChannelNamespace(prefix, namespaceName);
+      Object.assign(resources, nsFrag.Resources);
     }
   }
 
