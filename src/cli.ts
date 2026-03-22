@@ -10,6 +10,7 @@ import { typecheckCommand } from "./commands/typecheck.js";
 import { lintCommand } from "./commands/lint.js";
 import { deployCommand } from "./commands/deploy.js";
 import { listCellsCommand } from "./commands/cell.js";
+import { initCommand } from "./commands/init.js";
 
 const program = new Command();
 
@@ -22,7 +23,8 @@ const placeholderAction = async () => {
   console.log("Not implemented");
 };
 
-program.hook("preAction", () => {
+program.hook("preAction", (_thisCommand, actionCommand) => {
+  if (actionCommand.name() === "init") return;
   try {
     loadOtaviaYaml(process.cwd());
   } catch (err) {
@@ -30,6 +32,23 @@ program.hook("preAction", () => {
     process.exit(1);
   }
 });
+
+program
+  .command("init")
+  .description("Create otavia.yaml and a starter cell under cells/app")
+  .option("--force", "Overwrite existing otavia.yaml and cells/app/cell.yaml")
+  .option("--stack-name <name>", "CloudFormation stack name (default: current directory name)")
+  .option("--domain <host>", "Primary domain host (default: example.com)")
+  .action(
+    (_args: unknown, cmd: { opts: () => { force?: boolean; stackName?: string; domain?: string } }) => {
+      const opts = cmd.opts();
+      initCommand(process.cwd(), {
+        force: opts.force,
+        stackName: opts.stackName,
+        domain: opts.domain,
+      });
+    }
+  );
 
 program.command("setup")
   .description("Setup Otavia stack")
