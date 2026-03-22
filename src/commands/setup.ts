@@ -238,6 +238,69 @@ export async function resolveTunnelSetupEnabled(
   return /^y(es)?$/i.test(answer);
 }
 
+function isIpv4DecimalLabels(parts: string[], start: number): boolean {
+  for (let i = 0; i < 4; i++) {
+    const label = parts[start + i];
+    if (!label || !/^\d{1,3}$/.test(label)) return false;
+    const n = Number(label);
+    if (!Number.isInteger(n) || n < 0 || n > 255) return false;
+  }
+  return true;
+}
+
+/**
+ * TCP hostname can be an ISP/DHCP-style FQDN whose first label looks like an IPv4, e.g.
+ * `172-10-22-78.lightspeed.example.net`. Strip that label so defaults resemble the stable suffix.
+ */
+export function skipLeadingIpLikeHostnameLabel(host: string): string {
+  const hostTrim = host.trim();
+  if (!hostTrim) return hostTrim;
+  const parts = hostTrim.split(".").filter((p) => p.length > 0);
+  if (parts.length === 0) return hostTrim;
+
+  const first = parts[0]!;
+  if (/^\d{1,3}(?:-\d{1,3}){3}$/.test(first) && parts.length >= 2) {
+    return parts.slice(1).join(".");
+  }
+  if (parts.length >= 5 && isIpv4DecimalLabels(parts, 0)) {
+    return parts.slice(4).join(".");
+  }
+  if (parts.length === 4 && isIpv4DecimalLabels(parts, 0)) {
+    return "";
+  }
+  return hostTrim;
+}
+
+function readDarwinLocalHostName(): string | null {
+  if (process.platform !== "darwin") return null;
+  try {
+    const r = Bun.spawnSync(["/usr/sbin/scutil", "--get", "LocalHostName"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    if (r.exitCode !== 0) return null;
+    const s = new TextDecoder().decode(r.stdout).trim();
+    if (!s || s === "(null)" || s.toLowerCase() === "localhost") return null;
+    return s;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Default host string for tunnel machine segment: Windows COMPUTERNAME, macOS Bonjour
+ * LocalHostName (Sharing), else Node os.hostname() with leading IP-like labels removed.
+ */
+export function defaultHostNameForTunnelMachine(): string {
+  if (process.platform === "win32") {
+    const c = process.env.COMPUTERNAME?.trim();
+    if (c) return c;
+  }
+  const darwinLocal = readDarwinLocalHostName();
+  if (darwinLocal) return darwinLocal;
+  return skipLeadingIpLikeHostnameLabel(osHostname());
+}
+
 function hostnameToSegment(host: string): string {
   let s = host
     .toLowerCase()
@@ -299,7 +362,7 @@ async function resolveTunnelInputs(deps?: {
 }): Promise<{ devRoot: string; machineName: string }> {
   const ask = deps?.ask ?? askText;
   const isTTY = deps?.isTTY ?? Boolean(process.stdin.isTTY && process.stdout.isTTY);
-  const defaultMachine = hostnameToSegment(deps?.hostName ?? osHostname());
+  const defaultMachine = hostnameToSegment(deps?.hostName ?? defaultHostNameForTunnelMachine());
   const envRoot = normalizeDomain(process.env.OTAVIA_TUNNEL_DEV_ROOT ?? "");
   const envMachine = hostnameToSegment(process.env.OTAVIA_TUNNEL_MACHINE_NAME ?? defaultMachine);
   const configDir = deps?.configDir ?? process.env.OTAVIA_CONFIG_DIR ?? path.join(homedir(), ".config", "otavia");

@@ -46,6 +46,20 @@ export type MainDevGeneratedConfig = {
 const GLOBAL_WELL_KNOWN_RULE: RouteRule = { path: "/.well-known", match: "prefix" };
 const GLOBAL_PROXY_MOUNT = "__global__";
 
+/** When public base is exactly loopback + vite port, Vite's default banner is already correct. */
+export function publicOriginDiffersFromLocalVite(publicBaseUrl: string, vitePort: number): boolean {
+  try {
+    const u = new URL(publicBaseUrl);
+    const host = u.hostname.toLowerCase();
+    const loopback = host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1";
+    const port = u.port ? Number(u.port) : u.protocol === "https:" ? 443 : 80;
+    if (loopback && port === vitePort) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const MAIN_FRONTEND_INDEX_HTML = `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -457,7 +471,7 @@ ${cellsWithFrontend
 
   const viteResolveAliases = buildViteResolveAliases(monorepoRoot, cellsWithFrontend);
 
-  const env = {
+  const env: Record<string, string | undefined> = {
     ...process.env,
     OTAVIA_MOUNTS: JSON.stringify(cellsWithFrontend.map((c) => c.mount)),
     OTAVIA_FIRST_MOUNT: firstMount,
@@ -471,6 +485,11 @@ ${cellsWithFrontend
     /** JSON map: workspace subpath + react/react-dom -> absolute dirs for Vite optimizeDeps + imports. */
     OTAVIA_VITE_RESOLVE_ALIASES: JSON.stringify(viteResolveAliases),
   };
+  /** Public dev base (tunnel, etc.): make Vite's startup banner show this origin instead of localhost/LAN. */
+  const pub = publicBaseUrl?.trim();
+  if (pub && publicOriginDiffersFromLocalVite(pub, vitePort)) {
+    env.OTAVIA_VITE_PRINT_BASE_URL = pub.replace(/\/$/, "");
+  }
 
   const configPath = resolve(frontendRoot, "vite.config.ts");
   // cwd = monorepo root so Node resolves the \`otavia\` package from hoisted node_modules. Project root is set via mergeConfig({ root }).

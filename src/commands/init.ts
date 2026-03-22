@@ -10,6 +10,8 @@ import {
 
 const HELLO_MOUNT = "hello";
 const APPS_MAIN = join("apps", "main");
+/** Default `PORT_BASE` in `apps/main/.env.example` (copy to `.env` via `otavia setup`). */
+const DEFAULT_PORT_BASE = 7000;
 
 function yamlScalar(s: string): string {
   if (/^[\w.-]+$/.test(s)) return s;
@@ -26,7 +28,7 @@ function packageBaseName(rootDir: string): string {
 }
 
 function mergeGitignore(root: string): void {
-  const lines = ["node_modules/", "dist/", ".otavia/", ".env.local"];
+  const lines = ["node_modules/", "dist/", ".otavia/", ".env.local", "apps/main/.env"];
   const p = resolve(root, ".gitignore");
   if (!existsSync(p)) {
     writeFileSync(p, `${lines.join("\n")}\n`, "utf-8");
@@ -45,6 +47,7 @@ function writeJson(path: string, value: unknown): void {
 /**
  * Scaffold an Otavia monorepo: root `package.json` (workspaces), `apps/main` (entry + `otavia.yaml` only),
  * and cell packages under top-level `cells/<name>/` (not under `apps/main`).
+ * Each cell holds only its source tree and `cell.yaml` (no per-cell bundler config in the template).
  */
 export function initCommand(
   rootDir: string,
@@ -62,9 +65,21 @@ export function initCommand(
   mkdirSync(resolve(root, APPS_MAIN), { recursive: true });
   mkdirSync(resolve(root, "cells", HELLO_MOUNT), { recursive: true });
 
-  const packagesKeep = resolve(root, "packages", ".gitkeep");
-  if (!existsSync(packagesKeep)) {
-    writeFileSync(packagesKeep, "", "utf-8");
+  const packagesReadme = resolve(root, "packages", "README.md");
+  if (!existsSync(packagesReadme) || options.force) {
+    writeFileSync(
+      packagesReadme,
+      `# packages/
+
+Optional shared workspace libraries used by multiple cells or apps.
+
+- Cells live under \`../cells/\` (code + \`cell.yaml\` only).
+- Stack entry and \`otavia.yaml\` live under \`../apps/main/\`.
+
+This monorepo uses **Bun** for installs and scripts. Cells are written in **TypeScript**; use \`.tsx\` for React frontends.
+`,
+      "utf-8"
+    );
   }
 
   const configPath = resolve(root, APPS_MAIN, "otavia.yaml");
@@ -91,19 +106,16 @@ cells:
   writeFileSync(configPath, yamlContent, "utf-8");
 
   const mainEnvExample = `# Local dev ports: backend = PORT_BASE + 1900, frontend = PORT_BASE + 100
-PORT_BASE=7000
+PORT_BASE=${DEFAULT_PORT_BASE}
 # AWS (for deploy / otavia dev credential check)
 # AWS_PROFILE=default
 # AWS_REGION=us-east-1
+# Copy to .env (gitignored under apps/main/): otavia setup, or: cp .env.example .env
 `;
 
-  const mainEnvPath = resolve(root, APPS_MAIN, ".env");
   const mainEnvExamplePath = resolve(root, APPS_MAIN, ".env.example");
   if (!existsSync(mainEnvExamplePath) || options.force) {
     writeFileSync(mainEnvExamplePath, mainEnvExample, "utf-8");
-  }
-  if (!existsSync(mainEnvPath) || options.force) {
-    writeFileSync(mainEnvPath, `PORT_BASE=7000\n`, "utf-8");
   }
 
   writeJson(resolve(root, "package.json"), {
@@ -172,7 +184,7 @@ frontend:
   dir: frontend
   entries:
     shell:
-      entry: shell.ts
+      entry: shell.tsx
       routes:
         - /
 `,
@@ -183,7 +195,7 @@ frontend:
   mkdirSync(resolve(cellDir, "backend"), { recursive: true });
   mkdirSync(resolve(cellDir, "frontend"), { recursive: true });
 
-  // React on the cell (devDependencies): main Vite shell uses @vitejs/plugin-react; hoisted by workspaces for resolve. Not backend runtime / Lambda zip.
+  // React on the cell (devDependencies): loaded by otavia dev main shell via @vitejs/plugin-react. Not backend / Lambda zip.
   writeJson(resolve(cellDir, "package.json"), {
     name: helloPkg,
     version: "0.1.0",
@@ -191,7 +203,7 @@ frontend:
     type: "module",
     exports: {
       "./backend": "./backend/app.ts",
-      "./frontend": "./frontend/shell.ts",
+      "./frontend": "./frontend/shell.tsx",
     },
     dependencies: {
       hono: "^4.6.0",
@@ -199,7 +211,6 @@ frontend:
     devDependencies: {
       "@types/bun": "^1.3.11",
       typescript: "^5.8.3",
-      vite: "^7.x",
       "react": "^18.3.1",
       "react-dom": "^18.3.1",
       "@types/react": "^18.3.12",
@@ -236,49 +247,21 @@ export const handler = handle(app);
   );
 
   writeFileSync(
-    resolve(cellDir, "frontend", "shell.ts"),
-    `/**
+    resolve(cellDir, "frontend", "shell.tsx"),
+    `import { createRoot } from "react-dom/client";
+
+/**
  * Loaded by the main dev shell (dynamic import \`${helloPkg}/frontend\`).
  * Renders into \`#root\` from apps/main/.otavia/dev/main-frontend.
  */
-const root = document.getElementById("root");
-if (root) {
-  const h1 = document.createElement("h1");
-  h1.textContent = "Hello, Otavia!";
-  root.replaceChildren(h1);
+function Hello() {
+  return <h1>Hello, Otavia!</h1>;
 }
-`,
-    "utf-8"
-  );
 
-  writeFileSync(
-    resolve(cellDir, "frontend", "index.html"),
-    `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hello</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/shell.ts"></script>
-  </body>
-</html>
-`,
-    "utf-8"
-  );
-
-  writeFileSync(
-    resolve(cellDir, "frontend", "vite.config.ts"),
-    `import { defineConfig } from "vite";
-
-export default defineConfig({
-  root: ".",
-  build: {
-    emptyOutDir: true,
-  },
-});
+const el = document.getElementById("root");
+if (el) {
+  createRoot(el).render(<Hello />);
+}
 `,
     "utf-8"
   );
@@ -289,12 +272,13 @@ export default defineConfig({
       target: "ES2022",
       lib: ["ES2022", "DOM"],
       moduleResolution: "bundler",
+      jsx: "react-jsx",
       strict: true,
       skipLibCheck: true,
       noEmit: true,
       types: ["bun"],
     },
-    include: ["backend/**/*.ts", "frontend/**/*.ts"],
+    include: ["backend/**/*.ts", "frontend/**/*.ts", "frontend/**/*.tsx"],
   });
 
   mergeGitignore(root);
@@ -306,6 +290,9 @@ export default defineConfig({
   console.log(`  ${configPath}`);
   console.log(`  ${cellYamlPath}`);
   console.log(`  ${resolve(root, "package.json")}`);
+  console.log(
+    `  Next: bun install, then bun run setup (creates apps/main/.env from .env.example), then bun run dev.`
+  );
 }
 
 /**

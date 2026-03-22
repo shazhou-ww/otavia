@@ -4,11 +4,13 @@ import {
   buildOAuthCallbackUrl,
   buildTunnelConfigYaml,
   bootstrapNamedTunnel,
+  defaultHostNameForTunnelMachine,
   ensureCloudflaredInstalled,
   ensureCloudflaredLogin,
   fetchCloudflareZonesWithToken,
   isAwsSsoExpiredError,
   resolveTunnelSetupEnabled,
+  skipLeadingIpLikeHostnameLabel,
   type CommandRunner,
 } from "../setup";
 
@@ -259,5 +261,29 @@ describe("buildCognitoUserPoolClientUpdateArgs", () => {
         "Microsoft",
       ])
     );
+  });
+});
+
+describe("tunnel default machine host", () => {
+  test("skipLeadingIpLikeHostnameLabel removes hyphenated IPv4-like first label", () => {
+    expect(skipLeadingIpLikeHostnameLabel("172-10-22-78.lightspeed.clmasc.sbcglobal.net")).toBe(
+      "lightspeed.clmasc.sbcglobal.net"
+    );
+  });
+
+  test("skipLeadingIpLikeHostnameLabel removes four leading decimal octet labels", () => {
+    expect(skipLeadingIpLikeHostnameLabel("192.168.1.2.corp.internal")).toBe("corp.internal");
+  });
+
+  test("skipLeadingIpLikeHostnameLabel leaves normal hostnames unchanged", () => {
+    expect(skipLeadingIpLikeHostnameLabel("my-mbp.local")).toBe("my-mbp.local");
+  });
+
+  test("skipLeadingIpLikeHostnameLabel returns empty for bare IPv4 hostname", () => {
+    expect(skipLeadingIpLikeHostnameLabel("10.0.0.5")).toBe("");
+  });
+
+  test("defaultHostNameForTunnelMachine returns a non-empty string", () => {
+    expect(defaultHostNameForTunnelMachine().length).toBeGreaterThan(0);
   });
 });

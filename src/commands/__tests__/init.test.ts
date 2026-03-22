@@ -17,13 +17,13 @@ describe("initCommand", () => {
       expect(existsSync(join(root, "apps", "main", "otavia.yaml"))).toBe(true);
       expect(existsSync(join(root, "package.json"))).toBe(true);
       expect(existsSync(join(root, "apps", "main", "package.json"))).toBe(true);
-      expect(existsSync(join(root, "packages", ".gitkeep"))).toBe(true);
+      expect(existsSync(join(root, "packages", "README.md"))).toBe(true);
       expect(existsSync(join(root, "cells", "hello", "cell.yaml"))).toBe(true);
       expect(existsSync(join(root, "cells", "hello", "backend", "app.ts"))).toBe(true);
       expect(existsSync(join(root, "cells", "hello", "backend", "handler.ts"))).toBe(true);
-      expect(existsSync(join(root, "cells", "hello", "frontend", "shell.ts"))).toBe(true);
-      expect(existsSync(join(root, "cells", "hello", "frontend", "index.html"))).toBe(true);
-      expect(existsSync(join(root, "apps", "main", ".env"))).toBe(true);
+      expect(existsSync(join(root, "cells", "hello", "frontend", "shell.tsx"))).toBe(true);
+      expect(existsSync(join(root, "apps", "main", ".env.example"))).toBe(true);
+      expect(existsSync(join(root, "apps", "main", ".env"))).toBe(false);
       const otavia = loadOtaviaYaml(root);
       expect(otavia.stackName).toBe("demo-stack");
       expect(otavia.domain.host).toBe("app.example.dev");
@@ -40,6 +40,7 @@ describe("initCommand", () => {
       expect(helloPkg.name).toBe("@demo/hello");
       expect(helloPkg.devDependencies?.react).toMatch(/^\^/);
       expect(helloPkg.devDependencies?.["react-dom"]).toMatch(/^\^/);
+      expect(helloPkg.devDependencies?.vite).toBeUndefined();
       const rootPkg = JSON.parse(readFileSync(join(root, "package.json"), "utf-8")) as {
         workspaces?: string[];
         scripts?: Record<string, string>;
@@ -78,6 +79,7 @@ describe("initCommand", () => {
       expect(gi).toContain("custom");
       expect(gi).toContain("node_modules/");
       expect(gi).toContain(".otavia/");
+      expect(gi).toContain("apps/main/.env");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

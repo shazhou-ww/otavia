@@ -100,6 +100,43 @@ function isGlobalWellKnownPath(pathname: string): boolean {
   return pathname === "/.well-known" || pathname.startsWith("/.well-known/");
 }
 
+/**
+ * When dev is reached via a public URL (e.g. Cloudflare tunnel), rewrite the URLs Vite prints
+ * on startup (see vite's printServerUrls) so "Local" shows that origin instead of localhost/LAN.
+ */
+function otaviaPublicBaseCliUrlsPlugin(publicBaseUrl: string): Plugin {
+  const origin = publicBaseUrl.replace(/\/$/, "");
+  const display = `${origin}/`;
+
+  return {
+    name: "otavia-public-base-cli-urls",
+    configureServer(server) {
+      return () => {
+        const origPrintUrls = server.printUrls.bind(server);
+        server.printUrls = () => {
+          if (!server.resolvedUrls) {
+            origPrintUrls();
+            return;
+          }
+          const saved = {
+            local: [...server.resolvedUrls.local],
+            network: [...server.resolvedUrls.network],
+          };
+          server.resolvedUrls = {
+            local: [display],
+            network: [],
+          };
+          try {
+            origPrintUrls();
+          } finally {
+            server.resolvedUrls = saved;
+          }
+        };
+      };
+    },
+  };
+}
+
 type ConfigOptions = {
   generatedConfigPath: URL;
   /** apps/main (stack dir): used for proxy @fs paths relative to stack */
@@ -201,8 +238,15 @@ export function createMainFrontendViteConfig(options: ConfigOptions) {
 
   const workspaceRoot = resolvePath(options.workspaceRoot);
 
+  const printBase = process.env.OTAVIA_VITE_PRINT_BASE_URL?.trim();
+  const plugins: Plugin[] = [mountAwareApiRewritePlugin()];
+  if (printBase) {
+    plugins.push(otaviaPublicBaseCliUrlsPlugin(printBase));
+  }
+  plugins.push(react());
+
   return defineConfig({
-    plugins: [mountAwareApiRewritePlugin(), react()],
+    plugins,
     resolve: {
       // "bun" alone breaks react and many packages' exports; keep browser/import for workspace + React.
       conditions: ["import", "module", "browser", "development", "production", "default", "bun"],
