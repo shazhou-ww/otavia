@@ -1,0 +1,6 @@
+name: main
+provider:
+  region: us-east-1
+cells:
+  - mount: hello
+    package: "@fixture/hello"

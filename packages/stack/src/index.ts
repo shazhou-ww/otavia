@@ -28,3 +28,6 @@ export {
   type YamlVarRef,
   otaviaYamlCustomTags,
 } from "./yaml/tags.js";
+export { buildStackModel } from "./build-stack-model.js";
+export { resolveCellPackageDir } from "./resolve/resolve-cell-package-dir.js";
+export type { StackCellModel, StackModel } from "./types.js";

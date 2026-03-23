@@ -1,0 +1,25 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "otavia-stack-fixture-ws",
+    },
+    "cells/hello": {
+      "name": "@fixture/hello",
+      "version": "1.0.0",
+    },
+    "stacks/main": {
+      "name": "@fixture/main",
+      "version": "1.0.0",
+      "dependencies": {
+        "@fixture/hello": "workspace:*",
+      },
+    },
+  },
+  "packages": {
+    "@fixture/hello": ["@fixture/hello@workspace:cells/hello"],
+
+    "@fixture/main": ["@fixture/main@workspace:stacks/main"],
+  }
+}

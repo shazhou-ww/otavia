@@ -138,9 +138,9 @@
 - Create: `packages/stack/src/otavia/resolve-cell-mount-params.ts`
 - Create: `packages/stack/src/otavia/resolve-cell-mount-params.test.ts`
 
-- [ ] **Step 1:** 输入：已解析的顶层 `variables` 映射；每个 mount 的 `params` 字典；**禁止** `!Param`；`!Var` 仅允许引用顶层键。
-- [ ] **Step 2:** 测试：非法 `!Var` 抛错；合法代入。
-- [ ] **Step 3:** Commit：`feat(stack): resolve cells[mount].params`
+- [x] **Step 1:** 输入：已解析的顶层 `variables` 映射；每个 mount 的 `params` 字典；**禁止** `!Param`；`!Var` 仅允许引用顶层键。
+- [x] **Step 2:** 测试：非法 `!Var` 抛错；合法代入。
+- [x] **Step 3:** Commit：`feat(stack): resolve cells[mount].params`
 
 ---
 
@@ -152,11 +152,11 @@
 - Create: `packages/stack/src/cell/resolve-cell-body.ts`
 - Create: `packages/stack/src/cell/*.test.ts`
 
-- [ ] **Step 1:** 解析 `params: string[]`、`variables` 树、`backend`/`frontend`（MVP 字段对齐 legacy fixture 的最小子集）。**加载后立即扫描整棵 AST**：若出现 **`!Env` / `!Secret`**（含 `variables` 段内），**抛错**（spec §6.1、§6.4）。
-- [ ] **Step 2:** `resolveCellVariables`：`!Var→!Var` 环检测；`!Param` 从 cell 的「已合并 stack params」取值；树外 `!Var` 回退 `processEnv`。
-- [ ] **Step 3:** `resolveCellBody`：段外展开 `!Param`/`!Var`。
-- [ ] **Step 4:** 未知键 → warnings。
-- [ ] **Step 5:** Commit：`feat(stack): cell.yaml variables and body resolution`
+- [x] **Step 1:** 解析 `params: string[]`、`variables` 树、`backend`/`frontend`（MVP 字段对齐 legacy fixture 的最小子集）。**加载后立即扫描整棵 AST**：若出现 **`!Env` / `!Secret`**（含 `variables` 段内），**抛错**（spec §6.1、§6.4）。
+- [x] **Step 2:** `resolveCellVariables`：`!Var→!Var` 环检测；`!Param` 从 cell 的「已合并 stack params」取值；树外 `!Var` 回退 `processEnv`。
+- [x] **Step 3:** `resolveCellBody`：段外展开 `!Param`/`!Var`。
+- [x] **Step 4:** 未知键 → warnings。
+- [x] **Step 5:** Commit：`feat(stack): cell.yaml variables and body resolution`
 
 ---
 
@@ -166,9 +166,9 @@
 - Create: `packages/stack/src/resolve/resolve-cell-package-dir.ts`
 - Create: `packages/stack/src/resolve/resolve-cell-package-dir.test.ts`
 
-- [ ] **Step 1:** 使用 `import.meta.resolve` 或 `createRequire(stackPackageJsonDir)` 解析包名 → 目录（Bun 下验证）。
-- [ ] **Step 2:** 集成测试：在 `packages/stack/test-fixtures/minimal-workspace`（可提交小 fixture）中 `bun install`，断言解析到 `cells/hello` 模拟包。
-- [ ] **Step 3:** Commit：`feat(stack): resolve cell packages from stack package context`
+- [x] **Step 1:** 使用 `import.meta.resolve` 或 `createRequire(stackPackageJsonDir)` 解析包名 → 目录（Bun 下验证）。
+- [x] **Step 2:** 集成测试：在 `packages/stack/test-fixtures/minimal-workspace`（可提交小 fixture）中 `bun install`，断言解析到 `cells/hello` 模拟包。
+- [x] **Step 3:** Commit：`feat(stack): resolve cell packages from stack package context`
 
 ---
 
@@ -179,9 +179,9 @@
 - Create: `packages/stack/src/types.ts` — 导出 `StackModel`（含 `cells` 展开、`environments`、`secrets`、相对 stack 根路径）
 - Create: `packages/stack/src/build-stack-model.test.ts`
 
-- [ ] **Step 1:** 输入：`stackRoot`、`workspaceRoot`、`command`（决定 env）、`process.env`；按 **spec §6.2 步骤 1–6** 串联 Task 6–10 与 Task 9；**步骤 4**：对每个 cell，**`cell.yaml` 的 `params` 声明的每个名字必须在 `cells[mount].params` 中有键**（缺键 **throw**，与 spec 一致）。
-- [ ] **Step 2:** 将所有文件路径字段规范为 **POSIX 相对 stack 根**（`path.relative` + normalize）。
-- [ ] **Step 3:** Commit：`feat(stack): buildStackModel entrypoint`
+- [x] **Step 1:** 输入：`stackRoot`、`workspaceRoot`、`command`（决定 env）、`process.env`；按 **spec §6.2 步骤 1–6** 串联 Task 6–10 与 Task 9；**步骤 4**：对每个 cell，**`cell.yaml` 的 `params` 声明的每个名字必须在 `cells[mount].params` 中有键**（缺键 **throw**，与 spec 一致）。
+- [x] **Step 2:** 将所有文件路径字段规范为 **POSIX 相对 stack 根**（`path.relative` + normalize）。
+- [x] **Step 3:** Commit：`feat(stack): buildStackModel entrypoint`
 
 ---
 
