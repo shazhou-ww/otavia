@@ -6,7 +6,7 @@ describe("deployInputFromStackModel", () => {
   test("maps environment bindings to env var names", () => {
     const model = {
       name: "main",
-      provider: { region: "us-east-1" },
+      cloud: { provider: "aws" as const, region: "us-east-1" },
       topLevelVariableValues: { "app.url": "https://x" },
       environments: [{ logicalKey: "app.url", envVarName: "APP_URL" }],
       secrets: [],

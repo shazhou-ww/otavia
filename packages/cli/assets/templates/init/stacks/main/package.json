@@ -2,6 +2,15 @@
   "name": "@demo/main-stack",
   "version": "0.0.1",
   "private": true,
+  "scripts": {
+    "dev": "otavia dev",
+    "setup": "otavia setup",
+    "deploy": "otavia deploy",
+    "test": "bun test test/unit test/e2e",
+    "test:all": "otavia test",
+    "lint": "otavia lint",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@demo/hello": "workspace:*"
   }

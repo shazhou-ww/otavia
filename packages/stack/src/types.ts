@@ -1,5 +1,10 @@
 import type { VariableEnvBinding, VariableSecretBinding } from "./variables/resolve-top-variables.js";
 
+/** Discriminated union for `otavia.yaml` `cloud` (MVP: aws | azure). */
+export type CloudAws = { provider: "aws"; region: string };
+export type CloudAzure = { provider: "azure"; location: string };
+export type CloudProvider = CloudAws | CloudAzure;
+
 export type StackCellModel = {
   mount: string;
   packageName: string;
@@ -16,7 +21,7 @@ export type StackModel = {
   workspaceRootAbs: string;
   name: string;
   providerKind: "aws" | "azure";
-  provider: Record<string, unknown>;
+  cloud: CloudProvider;
   topLevelVariableValues: Record<string, string>;
   environments: VariableEnvBinding[];
   secrets: VariableSecretBinding[];

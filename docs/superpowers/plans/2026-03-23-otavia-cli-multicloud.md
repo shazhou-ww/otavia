@@ -336,11 +336,11 @@
 
 ### Task 24: 冒烟脚本（仓库内）
 
-**Files:**
-- Create: `packages/cli/scripts/smoke-init.mjs`（或 bun ts）— 在 `os.tmpdir()` 下 `init` + `bun install --no-cache` + `typecheck`（不默认 deploy）
+**Status:** **已移除** `packages/cli/scripts/smoke-init.mjs` 与根 `smoke:init`。原因：独立临时目录无法解析 `@otavia/cli` 的 `workspace:*` 依赖，脚本价值有限；init 流水线改由 **manual-test-multicloud-cli**（人类 / `.checks/`）与后续专用 **e2e** 覆盖。
 
-- [x] **Step 1:** 根 `package.json` `scripts.smoke:init` 指向该脚本。
-- [x] **Step 2:** Commit：`chore: add smoke script for init pipeline`
+**Was:**
+- ~~Create: `packages/cli/scripts/smoke-init.mjs`~~
+- ~~根 `package.json` `scripts.smoke:init`~~
 
 ---
 

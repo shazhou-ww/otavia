@@ -1,5 +1,5 @@
 /**
- * Discriminator for which host implementation is active (matches otavia.yaml provider).
+ * Discriminator for which host implementation is active (matches otavia.yaml `cloud.provider`).
  */
 export type ProviderId = "aws" | "azure";
 

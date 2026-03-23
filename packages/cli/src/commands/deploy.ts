@@ -4,7 +4,7 @@ import { buildStackModel } from "@otavia/stack";
 import { cwd } from "node:process";
 import { loadEnvForCommand } from "../env/load-env-for-command.js";
 import { mergeProcessAndFileEnv } from "../env/merge-process-env.js";
-import { createHostAdapterForProvider } from "../host/create-host-adapter.js";
+import { createHostAdapterForCloud } from "../host/create-host-adapter.js";
 import { findStackRoot } from "../resolve/find-stack-root.js";
 import { findWorkspaceRoot } from "../resolve/find-workspace-root.js";
 
@@ -16,10 +16,8 @@ export function deployInputFromStackModel(model: StackModel, stackRootAbs: strin
   const secrets: Record<string, unknown> = Object.fromEntries(
     model.secrets.map((s) => [s.secretName, { logicalKey: s.logicalKey }])
   );
-  const region =
-    typeof model.provider.region === "string" ? model.provider.region : undefined;
-  const location =
-    typeof model.provider.location === "string" ? model.provider.location : undefined;
+  const region = model.cloud.provider === "aws" ? model.cloud.region : undefined;
+  const location = model.cloud.provider === "azure" ? model.cloud.location : undefined;
   return {
     stackRoot: stackRootAbs,
     stackName: model.name,
@@ -44,7 +42,7 @@ export async function runDeploy(cwdInput: string = cwd()): Promise<void> {
     console.warn(`[otavia] ${w}`);
   }
 
-  const host = createHostAdapterForProvider(model.provider);
+  const host = createHostAdapterForCloud(model.cloud);
   await host.checkCredentials();
 
   const input = deployInputFromStackModel(model, stackRoot);

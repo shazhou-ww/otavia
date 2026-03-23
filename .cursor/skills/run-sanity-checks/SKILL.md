@@ -51,14 +51,14 @@ Each manual suite is its own skill, **name prefixed `manual-test-`** (short, hyp
 
 | Skill | Focus |
 |-------|--------|
-| **manual-test-multicloud-cli** | Plan `2026-03-23-otavia-cli-multicloud.md` 验证清单：init→install→setup→typecheck→lint，可选 deploy，`packages/stack` 测试与计划覆盖对照 |
+| **manual-test-multicloud-cli** | Plan `2026-03-23-otavia-cli-multicloud.md` 验证清单：init→install→setup→**dev（/hello/）**→**otavia test**；可选 typecheck/lint；**deploy 默认不验**；`packages/stack` 与计划覆盖对照 |
 
 ## Otavia monorepo (automated defaults)
 
 From repo root:
 
 - `bun run test`, `bun run typecheck`
-- `bun run smoke:init` — uses system temp; for plan-aligned init/install use **manual-test-multicloud-cli** under `.checks/`
+- 多云 CLI init→install→dev→test：用 **manual-test-multicloud-cli**（`.checks/`），勿依赖已移除的根 `smoke:init`
 
 Scoped changes: **`bun run --cwd packages/<name> test`** or **`typecheck`** as appropriate.
 

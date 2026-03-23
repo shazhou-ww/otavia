@@ -9,7 +9,8 @@ const templateRoot = join(commandsDir, "../../assets/templates/init");
 function otaviaYaml(provider: "aws" | "azure"): string {
   if (provider === "aws") {
     return `name: main
-provider:
+cloud:
+  provider: aws
   region: us-east-1
 variables: {}
 cells:
@@ -18,7 +19,8 @@ cells:
 `;
   }
   return `name: main
-provider:
+cloud:
+  provider: azure
   location: eastus
 variables: {}
 cells:

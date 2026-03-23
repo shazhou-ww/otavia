@@ -6,18 +6,19 @@
 
 ## 新多云 CLI（`@otavia/cli`）
 
-与 legacy 包 **`@otavia/cli-legacy`** 并存期间，推荐使用 **`@otavia/cli`** 做 **AWS / Azure** 双云栈（`otavia.yaml` 用 `provider.region` 或 `provider.location` 区分）。
+与 legacy 包 **`@otavia/cli-legacy`** 并存期间，推荐使用 **`@otavia/cli`** 做 **AWS / Azure** 双云栈（`otavia.yaml` 顶层 **`cloud`** 为判别联合：`provider: aws` 配 **`region`**，或 `provider: azure` 配 **`location`**）。
 
 - **入口**：仓库内 `bun run cli:multicloud` 或 `bun run --cwd packages/cli src/cli.ts`；安装到 path 后可用 **`otavia`**（见 `packages/cli/package.json` 的 `bin`）。
 - **常用命令**：`init`、`setup`、`dev`、`deploy`、`test` / `lint` / `typecheck`（后三者按栈与 cell 包 **fail-fast** 遍历）。
-- **AWS**：需安装 **AWS CLI**；`deploy` / `dev` 会校验凭证（`dev` 可用 `OTAVIA_DEV_SKIP_CREDENTIAL_CHECK=1` 仅本地调试）。
+- **AWS**：需安装 **AWS CLI**；**`deploy` / `setup`** 会校验凭证；**`dev`** 默认仅本地网关/Vite，**不**校验云凭证。若要在启动 dev 前确认已登录，可设 **`OTAVIA_DEV_CHECK_CREDENTIALS=1`**。
 - **Azure**：需安装 **Azure CLI** 与 **Bicep**（`az bicep version` 或独立 `bicep`）；`deploy` 需环境变量 **`OTAVIA_AZURE_RESOURCE_GROUP`**。
-- **冒烟**：仓库根执行 `bun run smoke:init`（临时目录 `init` + `bun install --no-cache`，不部署）。
+- **脚手架冒烟**：多云 CLI 暂无根级 `smoke:init` 脚本；请用 Cursor skill **`manual-test-multicloud-cli`**（`.checks/` 下完整 init→install→dev→test），或后续在仓库内加专用 **e2e** 自动化。
+- **CLI 未上 registry 时**：在 init 出的 workspace 根执行 `bun add --no-cache -d <本仓库 packages/cli 路径>`，将根 `package.json` 里的 `@otavia/cli` 指到本地后再 `bun install --no-cache`。
 
 ## 环境要求
 
 - **[Bun](https://bun.sh)**（运行时、包管理与 CLI；单元测试亦基于 Bun）
-- **AWS CLI**（`deploy`、`dev` 默认会校验凭证；本地可设 `OTAVIA_SKIP_AWS_CHECK=1` 跳过 STS）
+- **AWS CLI**（**`deploy`** 等会校验凭证；legacy CLI 本地可设 `OTAVIA_SKIP_AWS_CHECK=1` 跳过 STS）
 - 可选：**cloudflared**（`setup --tunnel` / `dev --tunnel` 做远程开发隧道）
 
 ## 安装 CLI

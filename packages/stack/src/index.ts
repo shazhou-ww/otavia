@@ -30,4 +30,10 @@ export {
 } from "./yaml/tags.js";
 export { buildStackModel } from "./build-stack-model.js";
 export { resolveCellPackageDir } from "./resolve/resolve-cell-package-dir.js";
-export type { StackCellModel, StackModel } from "./types.js";
+export type {
+  CloudAws,
+  CloudAzure,
+  CloudProvider,
+  StackCellModel,
+  StackModel,
+} from "./types.js";

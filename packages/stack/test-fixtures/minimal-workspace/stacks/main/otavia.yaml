@@ -1,5 +1,6 @@
 name: main
-provider:
+cloud:
+  provider: aws
   region: us-east-1
 cells:
   - mount: hello

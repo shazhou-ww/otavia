@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { buildStackModel } from "@otavia/stack";
 import { loadEnvForCommand } from "../env/load-env-for-command.js";
 import { mergeProcessAndFileEnv } from "../env/merge-process-env.js";
-import { createHostAdapterForProvider } from "../host/create-host-adapter.js";
+import { createHostAdapterForCloud } from "../host/create-host-adapter.js";
 import { findStackRoot } from "../resolve/find-stack-root.js";
 import { findWorkspaceRoot } from "../resolve/find-workspace-root.js";
 
@@ -52,7 +52,7 @@ export async function runSetup(cwdInput: string = cwd()): Promise<void> {
     console.warn(`[otavia] ${w}`);
   }
 
-  const host = createHostAdapterForProvider(model.provider);
+  const host = createHostAdapterForCloud(model.cloud);
   if (process.env.OTAVIA_SETUP_SKIP_TOOLCHAIN === "1") {
     return;
   }

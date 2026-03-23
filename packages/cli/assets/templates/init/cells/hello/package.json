@@ -1,5 +1,9 @@
 {
   "name": "@demo/hello",
   "version": "0.0.1",
-  "private": true
+  "private": true,
+  "scripts": {
+    "test": "bun test test/unit test/e2e",
+    "typecheck": "tsc --noEmit"
+  }
 }

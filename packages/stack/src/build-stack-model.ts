@@ -118,7 +118,7 @@ export function buildStackModel(input: {
   const content = readFileSync(otaviaPath, "utf8");
   const parsed = parseOtaviaYaml(content);
   const top = resolveTopVariables(parsed.variables, input.env);
-  const pk = providerKind(parsed.provider);
+  const pk = providerKind(parsed.cloud);
 
   const warnings = [...parsed.warnings];
   const cells: Record<string, StackCellModel> = {};
@@ -170,7 +170,7 @@ export function buildStackModel(input: {
     workspaceRootAbs,
     name: parsed.name,
     providerKind: pk,
-    provider: parsed.provider,
+    cloud: parsed.cloud,
     topLevelVariableValues: top.values,
     environments: top.environments,
     secrets: top.secrets,

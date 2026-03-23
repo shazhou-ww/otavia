@@ -1,20 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { createHostAdapterForProvider } from "./create-host-adapter.js";
+import { createHostAdapterForCloud } from "./create-host-adapter.js";
 
-describe("createHostAdapterForProvider", () => {
-  test("returns AWS host when region is set", () => {
-    const h = createHostAdapterForProvider({ region: "us-east-1" });
+describe("createHostAdapterForCloud", () => {
+  test("returns AWS host for aws cloud", () => {
+    const h = createHostAdapterForCloud({ provider: "aws", region: "us-east-1" });
     expect(h.providerId).toBe("aws");
   });
 
-  test("returns Azure host when location is set", () => {
-    const h = createHostAdapterForProvider({ location: "eastus" });
+  test("returns Azure host for azure cloud", () => {
+    const h = createHostAdapterForCloud({ provider: "azure", location: "eastus" });
     expect(h.providerId).toBe("azure");
-  });
-
-  test("rejects both region and location", () => {
-    expect(() =>
-      createHostAdapterForProvider({ region: "us-east-1", location: "eastus" })
-    ).toThrow();
   });
 });

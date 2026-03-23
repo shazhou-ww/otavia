@@ -1,7 +1,8 @@
+import type { CloudProvider } from "../types.js";
 import { parseYamlWithOtaviaTags } from "../yaml/load-yaml.js";
 import { validateOtaviaTagZones } from "./validate-otavia-tag-zones.js";
 
-const KNOWN_TOP_LEVEL = new Set(["name", "provider", "variables", "cells", "domain"]);
+const KNOWN_TOP_LEVEL = new Set(["name", "cloud", "variables", "cells", "domain"]);
 
 const DEFAULT_SCOPE = "@otavia";
 
@@ -13,7 +14,7 @@ export type OtaviaCellsListItem = {
 
 export type ParsedOtaviaYaml = {
   name: string;
-  provider: Record<string, unknown>;
+  cloud: CloudProvider;
   variables?: Record<string, unknown>;
   /** mount -> package name */
   cells: Record<string, string>;
@@ -110,21 +111,40 @@ function parseCells(data: unknown): { cells: Record<string, string>; cellsList: 
   throw new Error("otavia.yaml: cells must be an array or an object");
 }
 
-export function providerKind(provider: Record<string, unknown>): "aws" | "azure" {
-  const region =
-    typeof provider.region === "string" && provider.region.trim() !== ""
-      ? provider.region.trim()
-      : "";
-  const location =
-    typeof provider.location === "string" && provider.location.trim() !== ""
-      ? provider.location.trim()
-      : "";
-  if (region && !location) return "aws";
-  if (location && !region) return "azure";
-  if (region && location) {
-    throw new Error('otavia.yaml: provider cannot set both "region" and "location"');
+export function providerKind(cloud: CloudProvider): "aws" | "azure" {
+  return cloud.provider;
+}
+
+function parseCloud(data: Record<string, unknown>): CloudProvider {
+  const v = data.cloud;
+  if (v == null || typeof v !== "object" || Array.isArray(v)) {
+    throw new Error('otavia.yaml: "cloud" must be an object');
   }
-  throw new Error('otavia.yaml: provider must include "region" (AWS) or "location" (Azure)');
+  const o = v as Record<string, unknown>;
+  const id = o.provider;
+  if (id !== "aws" && id !== "azure") {
+    throw new Error('otavia.yaml: cloud.provider must be "aws" or "azure"');
+  }
+  if (id === "aws") {
+    const region = typeof o.region === "string" ? o.region.trim() : "";
+    if (!region) {
+      throw new Error('otavia.yaml: cloud (aws) must include non-empty "region"');
+    }
+    const location = typeof o.location === "string" ? o.location.trim() : "";
+    if (location) {
+      throw new Error('otavia.yaml: cloud must not set "location" when provider is "aws"');
+    }
+    return { provider: "aws", region };
+  }
+  const location = typeof o.location === "string" ? o.location.trim() : "";
+  if (!location) {
+    throw new Error('otavia.yaml: cloud (azure) must include non-empty "location"');
+  }
+  const region = typeof o.region === "string" ? o.region.trim() : "";
+  if (region) {
+    throw new Error('otavia.yaml: cloud must not set "region" when provider is "azure"');
+  }
+  return { provider: "azure", location };
 }
 
 function parseName(data: Record<string, unknown>): string {
@@ -136,14 +156,6 @@ function parseName(data: Record<string, unknown>): string {
     throw new Error('otavia.yaml: "name" must be a non-empty string');
   }
   return v.trim();
-}
-
-function parseProvider(data: Record<string, unknown>): Record<string, unknown> {
-  const v = data.provider;
-  if (v == null || typeof v !== "object" || Array.isArray(v)) {
-    throw new Error('otavia.yaml: "provider" must be an object');
-  }
-  return v as Record<string, unknown>;
 }
 
 /**
@@ -167,8 +179,7 @@ export function parseOtaviaYaml(content: string): ParsedOtaviaYaml {
   }
 
   const name = parseName(data);
-  const provider = parseProvider(data);
-  providerKind(provider);
+  const cloud = parseCloud(data);
 
   let variables: Record<string, unknown> | undefined;
   if (data.variables != null) {
@@ -188,5 +199,5 @@ export function parseOtaviaYaml(content: string): ParsedOtaviaYaml {
     domain = data.domain as Record<string, unknown>;
   }
 
-  return { name, provider, variables, cells, cellsList, domain, warnings };
+  return { name, cloud, variables, cells, cellsList, domain, warnings };
 }

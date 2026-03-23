@@ -4,7 +4,6 @@ import { runDevGateway } from "../dev/gateway.js";
 import { startViteDev } from "../dev/vite-dev.js";
 import { loadEnvForCommand } from "../env/load-env-for-command.js";
 import { mergeProcessAndFileEnv } from "../env/merge-process-env.js";
-import { createHostAdapterForProvider } from "../host/create-host-adapter.js";
 import { findStackRoot } from "../resolve/find-stack-root.js";
 import { findWorkspaceRoot } from "../resolve/find-workspace-root.js";
 
@@ -20,7 +19,9 @@ function sleepForever(): Promise<never> {
 }
 
 /**
- * Local dev: validate stack, check cloud login, run gateway (+ Vite when cells define frontend).
+ * Local dev: validate stack, run gateway (+ Vite when cells define frontend).
+ * Cloud credentials are not required (purely local). Set `OTAVIA_DEV_CHECK_CREDENTIALS=1` to run the
+ * same credential check as deploy (optional sanity check before touching the cloud).
  */
 export async function runDev(cwdInput: string = cwd()): Promise<void> {
   const workspaceRoot = findWorkspaceRoot(cwdInput);
@@ -44,8 +45,9 @@ export async function runDev(cwdInput: string = cwd()): Promise<void> {
     console.warn(`[otavia] ${w}`);
   }
 
-  const host = createHostAdapterForProvider(model.provider);
-  if (process.env.OTAVIA_DEV_SKIP_CREDENTIAL_CHECK !== "1") {
+  if (process.env.OTAVIA_DEV_CHECK_CREDENTIALS === "1") {
+    const { createHostAdapterForCloud } = await import("../host/create-host-adapter.js");
+    const host = createHostAdapterForCloud(model.cloud);
     try {
       await host.checkCredentials();
     } catch (e) {
@@ -55,13 +57,8 @@ export async function runDev(cwdInput: string = cwd()): Promise<void> {
       } else {
         console.error("Run `az login` and ensure a subscription is selected.");
       }
-      console.error("(Local-only: OTAVIA_DEV_SKIP_CREDENTIAL_CHECK=1 skips this check.)");
       process.exit(1);
     }
-  } else {
-    console.warn(
-      "[otavia] OTAVIA_DEV_SKIP_CREDENTIAL_CHECK=1: skipping cloud credential check (not for production deploy)."
-    );
   }
 
   let backendPort = parsePort("OTAVIA_BACKEND_PORT", 8787);
