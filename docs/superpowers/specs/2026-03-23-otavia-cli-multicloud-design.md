@@ -117,16 +117,20 @@
 | `!Env` / `!Secret` | **仅** `params` 树内 | **禁止** |
 | `!Param` | **`params` 树内允许**（含**顶层** `params`；与 legacy 不同，**顶层允许 `!Param`**） | **允许**于正文（不得出现在 `params` 声明列表的「键名」语义之外；即声明仍用字符串数组） |
 
-**`cells[mount].params`（在 `otavia.yaml` 内）**：可含 `!Param`，用于引用在**同文件 `params` 解析顺序下**已可确定的栈级参数（具体解析顺序见 §6.3）。
+**`cells[mount].params`（在 `otavia.yaml` 内）**：可含 `!Param`；引用规则与顶层 `params` 一并见 §6.2（含**树内引用**与**回退环境**）。
 
 ### 6.2 解析顺序（规范层要求）
 
 1. 按 **当前子命令**加载环境文件（§6.3），形成合并后的进程环境。
-2. 解析 **`otavia.yaml` 的 `params` 树**：字面量、`!Env`、`!Secret`、**`!Param`**。其中 **`!Param` 仅从「步骤 1 之后的进程环境」取值**（键名与 tag 形式与 legacy 对齐），**不**引用同一 YAML 文档内其它 `params` 键（避免与 `.env` 来源混淆；若未来扩展层内引用，须单独改版 spec）。
-3. 合并各 **cell 在 `otavia.yaml` 中的 `params` 覆盖/补充**（若存在），并校验 **`cell.yaml` 声明的 param 均已供给**。
-4. 对每个 cell：在 **合并到该 cell 的最终 param 映射**上，解析 **`cell.yaml` 正文中的 `!Param`**，得到 **最终 cell 配置**。
+2. 解析 **`otavia.yaml` 中与 param 相关的配置**（**顶层 `params`** 与各 **`cells[mount].params`**）：
+   - **`!Param` 允许引用同文件内其它 param 键**（「同层」指**同一 `params` 对象树内**的兄弟/嵌套键；**跨** `cells[mount].params` 与顶层 `params` 的引用规则在实现计划中**给出唯一算法**，须同样纳入依赖图）。
+   - **树内引用**：若 `!Param` 的目标名在**当前规则下**对应另一 param 键，则形成 **依赖边**；**须构建依赖图并检测环路，有环则报错**；无环则 **拓扑排序** 后求值。
+   - **树外回退**：若目标名**无树内对应键**，则 **`!Param` 从步骤 1 之后的进程环境**按同名取值（键名与 tag 形式与 legacy 对齐）。
+   - **`!Env` / `!Secret`**：仅在允许位置出现；与 `!Param` 混排时，与树内引用一并服从 **拓扑顺序**（依赖已解析键、`!Env`/`!Secret`、字面量及环境回退）。
+3. 合并各 cell 在 `otavia.yaml` 中的 **param 供给**，并校验 **`cell.yaml` 的 `params` 声明**均已得到满足。
+4. 对每个 cell：在 **合并到该 cell 的最终 param 映射**上，解析 **`cell.yaml` 正文中的 `!Param`**，得到 **最终 cell 配置**（**仅**能引用该 `cell.yaml` **`params` 已声明**的键）。
 
-若存在 **循环依赖**或 **无法确定的引用顺序**，schema/实现应 **报错**（不作为 warning）。
+**循环依赖**：**仅针对 `otavia.yaml` 内 `!Param` 的树内引用**做强制环路检测；**成环或无法拓扑排序则报错**（不作为 warning）。
 
 ### 6.3 环境文件与命令
 
@@ -190,7 +194,7 @@
 ## 10. 与 legacy 的已知差异（摘要）
 
 - 布局与包名：**终端项目**使用 **`stacks/`**；CLI 包为 **`@otavia/cli`**；**双云**与 **`host-*` / `runtime-*` 拆分**。
-- **顶层 `otavia.yaml` `params` 允许 `!Param`**（legacy 禁止）。
+- **顶层 `otavia.yaml` `params` 允许 `!Param`**（legacy 禁止）；且 **`!Param` 可引用同文件内其它 param 键**，**须做环路检测**（legacy 若未统一建图，以实现为准）。
 - **`cell.yaml` 正文允许 `!Param`**，且受 **`params` 声明**约束；仍 **禁止 `!Env`/`!Secret`**。
 - Cell 定位：**仅**通过 **stack 包依赖 + `node_modules` 解析**，不扫 `cells/` 目录树。
 - **未知 YAML 键**：**warning**（legacy 可能更严，以实现为准）。
