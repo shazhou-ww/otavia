@@ -19,7 +19,26 @@ describe("parseOtaviaYaml", () => {
     expect(r.cloud).toEqual({ provider: "aws", region: "us-east-1" });
     expect(r.cells.hello).toBe("@acme/hello");
     expect(r.cellsList).toEqual([{ mount: "hello", package: "@acme/hello" }]);
+    expect(r.resourceTables).toEqual({});
     expect(r.warnings).toEqual([]);
+  });
+
+  test("parses resources.tables", () => {
+    const r = parseOtaviaYaml(`
+name: demo
+cloud:
+  provider: aws
+  region: us-east-1
+variables: {}
+cells:
+  hello: "@acme/hello"
+resources:
+  tables:
+    settings:
+      partitionKey: pk
+      rowKey: sk
+`);
+    expect(r.resourceTables.settings).toEqual({ partitionKey: "pk", rowKey: "sk" });
   });
 
   test("warns on unknown top-level keys", () => {

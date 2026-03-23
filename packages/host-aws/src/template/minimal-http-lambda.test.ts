@@ -14,4 +14,25 @@ describe("buildMinimalHttpLambdaTemplate", () => {
     expect(y).toContain("FOO:");
     expect(y).toContain('"bar"');
   });
+
+  test("adds DynamoDB tables and OTAVIA_TABLE_* when resourceTables set", () => {
+    const y = buildMinimalHttpLambdaTemplate({
+      environments: {},
+      resourceTables: [
+        {
+          logicalId: "settings",
+          partitionKeyAttr: "pk",
+          rowKeyAttr: "sk",
+          envSuffix: "SETTINGS",
+        },
+      ],
+    });
+    expect(y).toContain("AWS::DynamoDB::Table");
+    expect(y).toContain("SettingsTable:");
+    expect(y).toContain("OtaviaDynamoDbData");
+    expect(y).toContain("OTAVIA_TABLE_SETTINGS_NAME:");
+    expect(y).toContain("!Ref SettingsTable");
+    expect(y).toContain("OTAVIA_TABLE_SETTINGS_PARTITION_KEY:");
+    expect(y).toContain("OTAVIA_TABLE_SETTINGS_ROW_KEY:");
+  });
 });

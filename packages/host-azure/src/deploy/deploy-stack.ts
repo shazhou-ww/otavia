@@ -40,14 +40,22 @@ export async function deployAzureStack(input: DeployInput, run: CommandRunner): 
   const dir = join(input.stackRoot, ".otavia", "azure");
   await mkdir(dir, { recursive: true });
   const bicepPath = join(dir, "main.bicep");
-  await writeFile(bicepPath, buildMinimalFunctionBicep(), "utf8");
+  const hasTables = (input.resourceTables?.length ?? 0) > 0;
+  await writeFile(
+    bicepPath,
+    buildMinimalFunctionBicep({ resourceTables: input.resourceTables }),
+    "utf8"
+  );
 
   const paramsPath = join(dir, "deploy-params.json");
-  const paramsDoc = {
+  const paramsDoc: Record<string, { value: unknown }> = {
     location: { value: location },
     stackName: { value: input.stackName },
     envSettings: { value: input.environments },
   };
+  if (hasTables) {
+    paramsDoc.resourceTables = { value: input.resourceTables };
+  }
   await writeFile(paramsPath, `${JSON.stringify(paramsDoc, null, 2)}\n`, "utf8");
 
   const deploymentName = sanitizeAzureDeploymentName(`${input.stackName}-deploy`);

@@ -3,6 +3,15 @@
  */
 export type ProviderId = "aws" | "azure";
 
+/** Declarative table (DynamoDB / Cosmos Table API) for deploy-time IaC and env injection. */
+export interface DeployResourceTable {
+  logicalId: string;
+  partitionKeyAttr: string;
+  rowKeyAttr: string;
+  /** Segment for `OTAVIA_TABLE_${envSuffix}_*` env keys (align with `tableLogicalIdToEnvSuffix` in `@otavia/runtime-contract`). */
+  envSuffix: string;
+}
+
 /**
  * Payload passed to {@link HostAdapter.deployStack}.
  * Kept plain-data and free of `@otavia/stack` imports to avoid package cycles.
@@ -29,6 +38,8 @@ export interface DeployInput {
    * Required when deploying with {@link HostAdapter} `providerId` `"azure"`.
    */
   resourceGroup?: string;
+  /** When set, hosts provision portable row-store tables and inject `OTAVIA_TABLE_*` settings. */
+  resourceTables?: DeployResourceTable[];
 }
 
 /**

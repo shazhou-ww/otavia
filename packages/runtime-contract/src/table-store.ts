@@ -79,3 +79,11 @@ export interface TableStore {
   deleteRow(input: DeleteRowInput): Promise<void>;
   queryPartition(input: QueryPartitionInput): Promise<TableRow[]>;
 }
+
+/**
+ * Builds the `OTAVIA_TABLE_${suffix}_*` env var segment (must match hosts + CLI).
+ * Example: `user-data` → `USER_DATA`.
+ */
+export function tableLogicalIdToEnvSuffix(logicalTableId: string): string {
+  return logicalTableId.toUpperCase().replace(/[^A-Z0-9]/g, "_");
+}

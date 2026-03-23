@@ -1,4 +1,5 @@
 import type { DeployInput } from "@otavia/host-contract";
+import { tableLogicalIdToEnvSuffix } from "@otavia/runtime-contract";
 import type { StackModel } from "@otavia/stack";
 import { buildStackModel } from "@otavia/stack";
 import { cwd } from "node:process";
@@ -18,6 +19,16 @@ export function deployInputFromStackModel(model: StackModel, stackRootAbs: strin
   );
   const region = model.cloud.provider === "aws" ? model.cloud.region : undefined;
   const location = model.cloud.provider === "azure" ? model.cloud.location : undefined;
+  const tables = model.resourceTables ?? {};
+  const resourceTables =
+    Object.keys(tables).length === 0
+      ? undefined
+      : Object.entries(tables).map(([logicalId, t]) => ({
+          logicalId,
+          partitionKeyAttr: t.partitionKey,
+          rowKeyAttr: t.rowKey,
+          envSuffix: tableLogicalIdToEnvSuffix(logicalId),
+        }));
   return {
     stackRoot: stackRootAbs,
     stackName: model.name,
@@ -25,6 +36,7 @@ export function deployInputFromStackModel(model: StackModel, stackRootAbs: strin
     environments,
     secrets,
     resourceGroup: process.env.OTAVIA_AZURE_RESOURCE_GROUP,
+    resourceTables,
   };
 }
 

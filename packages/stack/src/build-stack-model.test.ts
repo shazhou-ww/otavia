@@ -16,6 +16,7 @@ describe("buildStackModel", () => {
 
     expect(model.name).toBe("main");
     expect(model.cellMountOrder).toEqual(["hello"]);
+    expect(model.resourceTables).toEqual({});
     expect(model.providerKind).toBe("aws");
     expect(model.workspaceRootAbs.replace(/\\/g, "/")).toMatch(/minimal-workspace$/);
 

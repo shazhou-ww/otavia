@@ -1,8 +1,8 @@
-import type { CloudProvider } from "../types.js";
+import type { CloudProvider, StackResourceTable } from "../types.js";
 import { parseYamlWithOtaviaTags } from "../yaml/load-yaml.js";
 import { validateOtaviaTagZones } from "./validate-otavia-tag-zones.js";
 
-const KNOWN_TOP_LEVEL = new Set(["name", "cloud", "variables", "cells", "domain"]);
+const KNOWN_TOP_LEVEL = new Set(["name", "cloud", "variables", "cells", "domain", "resources"]);
 
 const DEFAULT_SCOPE = "@otavia";
 
@@ -20,6 +20,8 @@ export type ParsedOtaviaYaml = {
   cells: Record<string, string>;
   cellsList: OtaviaCellsListItem[];
   domain?: Record<string, unknown>;
+  /** `resources.tables` — logical id → partition/sort attribute names (v1: string keys only). */
+  resourceTables: Record<string, StackResourceTable>;
   warnings: string[];
 };
 
@@ -147,6 +149,66 @@ function parseCloud(data: Record<string, unknown>): CloudProvider {
   return { provider: "azure", location };
 }
 
+const ATTR_NAME = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+function parseResourceTables(
+  resources: Record<string, unknown>,
+  warnings: string[]
+): Record<string, StackResourceTable> {
+  for (const key of Object.keys(resources)) {
+    if (key !== "tables") {
+      warnings.push(`Unknown resources key "${key}" (ignored)`);
+    }
+  }
+  const raw = resources.tables;
+  if (raw == null) {
+    return {};
+  }
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error('otavia.yaml: resources.tables must be an object when present');
+  }
+  const out: Record<string, StackResourceTable> = {};
+  for (const [logicalIdRaw, def] of Object.entries(raw as Record<string, unknown>)) {
+    const logicalId = logicalIdRaw.trim();
+    if (!logicalId) {
+      throw new Error("otavia.yaml: resources.tables keys must be non-empty logical table ids");
+    }
+    if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(logicalId)) {
+      throw new Error(
+        `otavia.yaml: resources.tables key "${logicalIdRaw}" must match /^[a-zA-Z][a-zA-Z0-9_-]*$/`
+      );
+    }
+    if (def == null || typeof def !== "object" || Array.isArray(def)) {
+      throw new Error(`otavia.yaml: resources.tables["${logicalId}"] must be an object`);
+    }
+    const o = def as Record<string, unknown>;
+    const pk = typeof o.partitionKey === "string" ? o.partitionKey.trim() : "";
+    const rk = typeof o.rowKey === "string" ? o.rowKey.trim() : "";
+    if (!pk || !ATTR_NAME.test(pk)) {
+      throw new Error(
+        `otavia.yaml: resources.tables["${logicalId}"].partitionKey must be a valid attribute name`
+      );
+    }
+    if (!rk || !ATTR_NAME.test(rk)) {
+      throw new Error(
+        `otavia.yaml: resources.tables["${logicalId}"].rowKey must be a valid attribute name`
+      );
+    }
+    if (pk === rk) {
+      throw new Error(
+        `otavia.yaml: resources.tables["${logicalId}"]: partitionKey and rowKey must differ`
+      );
+    }
+    for (const k of Object.keys(o)) {
+      if (k !== "partitionKey" && k !== "rowKey") {
+        warnings.push(`Unknown key resources.tables["${logicalId}"].${k} (ignored)`);
+      }
+    }
+    out[logicalId] = { partitionKey: pk, rowKey: rk };
+  }
+  return out;
+}
+
 function parseName(data: Record<string, unknown>): string {
   const v = data.name;
   if (v == null || v === "") {
@@ -199,5 +261,13 @@ export function parseOtaviaYaml(content: string): ParsedOtaviaYaml {
     domain = data.domain as Record<string, unknown>;
   }
 
-  return { name, cloud, variables, cells, cellsList, domain, warnings };
+  let resourceTables: Record<string, StackResourceTable> = {};
+  if (data.resources != null) {
+    if (typeof data.resources !== "object" || Array.isArray(data.resources)) {
+      throw new Error('otavia.yaml: "resources" must be an object when present');
+    }
+    resourceTables = parseResourceTables(data.resources as Record<string, unknown>, warnings);
+  }
+
+  return { name, cloud, variables, cells, cellsList, domain, resourceTables, warnings };
 }

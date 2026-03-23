@@ -12,6 +12,7 @@
     "test": "bun test src/"
   },
   "dependencies": {
+    "@azure/data-tables": "^13.3.0",
     "@otavia/runtime-contract": "workspace:*"
   },
   "devDependencies": {

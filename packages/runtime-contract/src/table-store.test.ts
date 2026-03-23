@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   isSafeTableNumber,
   isTableStoreError,
+  tableLogicalIdToEnvSuffix,
   TableStoreError,
   type TableStore,
 } from "./table-store.js";
@@ -25,5 +26,10 @@ describe("table-store contract", () => {
     expect(isSafeTableNumber(1.5)).toBe(false);
     expect(isSafeTableNumber(Number.NaN)).toBe(false);
     expect(isSafeTableNumber(Number.POSITIVE_INFINITY)).toBe(false);
+  });
+
+  test("tableLogicalIdToEnvSuffix", () => {
+    expect(tableLogicalIdToEnvSuffix("settings")).toBe("SETTINGS");
+    expect(tableLogicalIdToEnvSuffix("user-data")).toBe("USER_DATA");
   });
 });

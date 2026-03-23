@@ -36,4 +36,5 @@ export type {
   CloudProvider,
   StackCellModel,
   StackModel,
+  StackResourceTable,
 } from "./types.js";

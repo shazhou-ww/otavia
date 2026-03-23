@@ -3,6 +3,7 @@ export type CloudPlatform = "aws" | "azure";
 export {
   isSafeTableNumber,
   isTableStoreError,
+  tableLogicalIdToEnvSuffix,
   TableStoreError,
 } from "./table-store.js";
 export type {

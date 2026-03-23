@@ -1,5 +1,11 @@
 import type { VariableEnvBinding, VariableSecretBinding } from "./variables/resolve-top-variables.js";
 
+/** `resources.tables.<logicalId>` from `otavia.yaml` (portable row store v1). */
+export type StackResourceTable = {
+  partitionKey: string;
+  rowKey: string;
+};
+
 /** Discriminated union for `otavia.yaml` `cloud` (MVP: aws | azure). */
 export type CloudAws = { provider: "aws"; region: string };
 export type CloudAzure = { provider: "azure"; location: string };
@@ -28,5 +34,7 @@ export type StackModel = {
   /** `cells` mounts in `otavia.yaml` declaration order. */
   cellMountOrder: string[];
   cells: Record<string, StackCellModel>;
+  /** Logical table id → key attribute names (empty if not declared). */
+  resourceTables: Record<string, StackResourceTable>;
   warnings: string[];
 };

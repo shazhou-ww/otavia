@@ -176,6 +176,7 @@ export function buildStackModel(input: {
     secrets: top.secrets,
     cellMountOrder,
     cells,
+    resourceTables: parsed.resourceTables,
     warnings,
   };
 }

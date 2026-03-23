@@ -33,7 +33,10 @@ export async function deployAwsStack(input: DeployInput, run: CommandRunner): Pr
     }
   }
 
-  const yaml = buildMinimalHttpLambdaTemplate({ environments: input.environments });
+  const yaml = buildMinimalHttpLambdaTemplate({
+    environments: input.environments,
+    resourceTables: input.resourceTables,
+  });
   const dir = join(input.stackRoot, ".otavia", "aws");
   await mkdir(dir, { recursive: true });
   const templatePath = join(dir, "template.yaml");
