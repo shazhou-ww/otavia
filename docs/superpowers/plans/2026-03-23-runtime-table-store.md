@@ -10,9 +10,11 @@
 
 **Spec:** `docs/superpowers/specs/2026-03-23-otavia-runtime-table-store-design.md`
 
+**Status — 已实施（Tasks 1–8）：** 代码已合入 `main` 并推送 `origin/main`（含 `feat(runtime-contract)…`、`feat(runtime-local)…`、`feat: wire portable TableStore…` 等提交）。Task 9（文档交叉链接）按 YAGNI 未做，仍为可选。
+
 ---
 
-## File map (planned)
+## File map（已与实现对齐）
 
 | Path | Responsibility |
 |------|----------------|
@@ -30,14 +32,14 @@
 
 ---
 
-### Task 1: `runtime-contract` — types and errors
+### Task 1: `runtime-contract` — types and errors ✅
 
 **Files:**
 - Create: `packages/runtime-contract/src/table-store.ts`
 - Modify: `packages/runtime-contract/src/index.ts`
 - Test: `packages/runtime-contract/src/table-store.test.ts`
 
-- [ ] **Step 1: Write failing tests** for exported types/helpers (e.g. `isTableStoreError`, factory) if any pure functions exist; otherwise minimal compile-time export test that imports `TableStore`.
+- [x] **Step 1: Write failing tests** for exported types/helpers (e.g. `isTableStoreError`, factory) if any pure functions exist; otherwise minimal compile-time export test that imports `TableStore`.
 
 ```ts
 import { describe, expect, test } from "bun:test";
@@ -51,22 +53,22 @@ describe("runtime-contract table-store", () => {
 });
 ```
 
-- [ ] **Step 2: Run test**
+- [x] **Step 2: Run test**
 
 Run: `bun test --cwd packages/runtime-contract src/table-store.test.ts`  
 Expected: FAIL (missing `./table-store.ts` or undefined symbol).
 
-- [ ] **Step 3: Implement** `table-store.ts`: define `AttributeValue` union, `Row`, `GetRowInput`, `PutRowInput`, `DeleteRowInput`, `QueryPartitionInput` (narrow operators only), `TableStore` interface methods (`getRow`, `putRow`, `deleteRow`, `queryPartition`), and `TableStoreError` with `code` union per spec §4.
+- [x] **Step 3: Implement** `table-store.ts`: define `AttributeValue` union, `Row`, `GetRowInput`, `PutRowInput`, `DeleteRowInput`, `QueryPartitionInput` (narrow operators only), `TableStore` interface methods (`getRow`, `putRow`, `deleteRow`, `queryPartition`), and `TableStoreError` with `code` union per spec §4.
 
-- [ ] **Step 4: Export** from `index.ts` (keep existing `CloudPlatform` export).
+- [x] **Step 4: Export** from `index.ts` (keep existing `CloudPlatform` export).
 
-- [ ] **Step 5: Run tests + typecheck**
+- [x] **Step 5: Run tests + typecheck**
 
 Run: `bun test --cwd packages/runtime-contract src/`  
 Run: `bun run --cwd packages/runtime-contract typecheck`  
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/runtime-contract/src/table-store.ts packages/runtime-contract/src/table-store.test.ts packages/runtime-contract/src/index.ts
@@ -75,7 +77,7 @@ git commit -m "feat(runtime-contract): add portable TableStore types"
 
 ---
 
-### Task 2: `@otavia/runtime-local`
+### Task 2: `@otavia/runtime-local` ✅
 
 **Files:**
 - Create: `packages/runtime-local/package.json`
@@ -84,19 +86,19 @@ git commit -m "feat(runtime-contract): add portable TableStore types"
 - Create: `packages/runtime-local/src/index.ts`
 - Test: `packages/runtime-local/src/table-store.test.ts`
 
-- [ ] **Step 1: Scaffold package** `packages/runtime-local` with `"name": "@otavia/runtime-local"`, `workspace` dependency `"@otavia/runtime-contract": "workspace:*"`, scripts `test` / `typecheck` same pattern as `packages/runtime-aws/package.json`.
+- [x] **Step 1: Scaffold package** `packages/runtime-local` with `"name": "@otavia/runtime-local"`, `workspace` dependency `"@otavia/runtime-contract": "workspace:*"`, scripts `test` / `typecheck` same pattern as `packages/runtime-aws/package.json`.
 
-- [ ] **Step 2: Write failing tests** for `createLocalTableStore()` covering `getRow` miss → `NotFound`, `putRow` + `getRow` round-trip, `deleteRow`, `queryPartition` with `rowKey` equality and `beginsWith` (only if in v1 operator set).
+- [x] **Step 2: Write failing tests** for `createLocalTableStore()` covering `getRow` miss → `NotFound`, `putRow` + `getRow` round-trip, `deleteRow`, `queryPartition` with `rowKey` equality and `beginsWith` (only if in v1 operator set).
 
-- [ ] **Step 3: Run test** — expect FAIL.
+- [x] **Step 3: Run test** — expect FAIL.
 
 Run: `bun test --cwd packages/runtime-local src/table-store.test.ts`
 
-- [ ] **Step 4: Implement** in-memory store: `Map` keyed by `tableId` → nested map `partitionKey` → `Map<rowKey, Row>`; enforce v1 validation; throw `TableStoreError` with correct codes.
+- [x] **Step 4: Implement** in-memory store: `Map` keyed by `tableId` → nested map `partitionKey` → `Map<rowKey, Row>`; enforce v1 validation; throw `TableStoreError` with correct codes.
 
-- [ ] **Step 5: Run tests + typecheck** — expect PASS.
+- [x] **Step 5: Run tests + typecheck** — expect PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/runtime-local
@@ -105,7 +107,7 @@ git commit -m "feat(runtime-local): in-memory TableStore for dev and tests"
 
 ---
 
-### Task 3: `runtime-aws` — DynamoDB implementation
+### Task 3: `runtime-aws` — DynamoDB implementation ✅
 
 **Files:**
 - Modify: `packages/runtime-aws/package.json` (add AWS SDK deps)
@@ -113,15 +115,15 @@ git commit -m "feat(runtime-local): in-memory TableStore for dev and tests"
 - Modify: `packages/runtime-aws/src/index.ts`
 - Test: `packages/runtime-aws/src/table-store.test.ts`
 
-- [ ] **Step 1: Add dependencies** `@aws-sdk/client-dynamodb`, `@aws-sdk/lib-dynamodb` (versions aligned with monorepo / Bun).
+- [x] **Step 1: Add dependencies** `@aws-sdk/client-dynamodb`, `@aws-sdk/lib-dynamodb` (versions aligned with monorepo / Bun).
 
-- [ ] **Step 2: Write tests** using **mocked** `DynamoDBDocumentClient` (inject client factory) for one happy path `putRow`/`getRow` and `NotFound`.
+- [x] **Step 2: Write tests** using **mocked** `DynamoDBDocumentClient` (inject client factory) for one happy path `putRow`/`getRow` and `NotFound`.
 
-- [ ] **Step 3: Implement** `createAwsTableStore(config)` reading table name from env convention documented in spec §5 (constant prefix helper in one place).
+- [x] **Step 3: Implement** `createAwsTableStore(config)` reading table name from env convention documented in spec §5 (constant prefix helper in one place).
 
-- [ ] **Step 4: Run** `bun test --cwd packages/runtime-aws src/` and typecheck.
+- [x] **Step 4: Run** `bun test --cwd packages/runtime-aws src/` and typecheck.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/runtime-aws
@@ -130,7 +132,7 @@ git commit -m "feat(runtime-aws): DynamoDB TableStore implementation"
 
 ---
 
-### Task 4: `runtime-azure` — Cosmos Table API
+### Task 4: `runtime-azure` — Cosmos Table API ✅（未加 `@azure/identity`；使用 account key + `AzureNamedKeyCredential`）
 
 **Files:**
 - Modify: `packages/runtime-azure/package.json` (add `@azure/data-tables`, `@azure/identity` if needed)
@@ -138,13 +140,13 @@ git commit -m "feat(runtime-aws): DynamoDB TableStore implementation"
 - Modify: `packages/runtime-azure/src/index.ts`
 - Test: `packages/runtime-azure/src/table-store.test.ts`
 
-- [ ] **Step 1: Write tests** with mocked `TableClient` / batch API for `getEntity` / `upsertEntity` / `deleteEntity` / `listEntities` mapping.
+- [x] **Step 1: Write tests** with mocked `TableClient` / batch API for `getEntity` / `upsertEntity` / `deleteEntity` / `listEntities` mapping.
 
-- [ ] **Step 2: Implement** `createAzureTableStore(config)` using partition/row key property names from config; map errors to `TableStoreError`.
+- [x] **Step 2: Implement** `createAzureTableStore(config)` using partition/row key property names from config; map errors to `TableStoreError`.
 
-- [ ] **Step 3: Run** `bun test --cwd packages/runtime-azure src/` and typecheck.
+- [x] **Step 3: Run** `bun test --cwd packages/runtime-azure src/` and typecheck.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/runtime-azure
@@ -153,7 +155,7 @@ git commit -m "feat(runtime-azure): Cosmos Table API TableStore implementation"
 
 ---
 
-### Task 5: `@otavia/stack` — parse `resources.tables`
+### Task 5: `@otavia/stack` — parse `resources.tables` ✅（`StackModel.resourceTables`）
 
 **Files:**
 - Modify: `packages/stack/src/otavia/parse-otavia-yaml.ts`
@@ -161,17 +163,17 @@ git commit -m "feat(runtime-azure): Cosmos Table API TableStore implementation"
 - Modify: `packages/stack/src/build-stack-model.ts` (if env merge lives here)
 - Test: new or extended tests under `packages/stack/src/otavia/`
 
-- [ ] **Step 1: Extend** `KNOWN_TOP_LEVEL` with `resources`.
+- [x] **Step 1: Extend** `KNOWN_TOP_LEVEL` with `resources`.
 
-- [ ] **Step 2: Parse** `resources.tables` as a record: logical id → `{ partitionKey, rowKey }` attribute names + type enum (`string` only in v1 if that reduces risk, else match spec §3).
+- [x] **Step 2: Parse** `resources.tables` as a record: logical id → `{ partitionKey, rowKey }` attribute names + type enum (`string` only in v1 if that reduces risk, else match spec §3).
 
-- [ ] **Step 3: Add** `warnings` for unknown `resources.*` children; **errors** for invalid key definitions.
+- [x] **Step 3: Add** `warnings` for unknown `resources.*` children; **errors** for invalid key definitions.
 
-- [ ] **Step 4: Extend** `StackModel` with `tables: Record<string, ParsedTableDefinition>` (name types precisely in code).
+- [x] **Step 4: Extend** `StackModel` with `tables: Record<string, ParsedTableDefinition>` (name types precisely in code).
 
-- [ ] **Step 5: Run** `bun test --cwd packages/stack src/` and typecheck.
+- [x] **Step 5: Run** `bun test --cwd packages/stack src/` and typecheck.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/stack/src
@@ -180,22 +182,22 @@ git commit -m "feat(stack): parse otavia.yaml resources.tables"
 
 ---
 
-### Task 6: `host-aws` — CloudFormation tables + IAM + env
+### Task 6: `host-aws` — CloudFormation tables + IAM + env ✅
 
 **Files:**
 - Create or modify under `packages/host-aws/src/template/`
 - Modify: `packages/host-aws/src/deploy/deploy-stack.ts` if template composition changes
 - Test: extend existing template tests
 
-- [ ] **Step 1: Generate** `AWS::DynamoDB::Table` per declared table (PAY_PER_REQUEST, point-in-time recovery optional off for v1).
+- [x] **Step 1: Generate** `AWS::DynamoDB::Table` per declared table (PAY_PER_REQUEST, point-in-time recovery optional off for v1).
 
-- [ ] **Step 2: Extend** Lambda execution role inline policy for `dynamodb:GetItem`, `PutItem`, `UpdateItem`, `DeleteItem`, `Query`, `BatchGetItem`, `BatchWriteItem`, `Scan` **scoped** to table ARNs.
+- [x] **Step 2: Extend** Lambda execution role inline policy for `dynamodb:GetItem`, `PutItem`, `UpdateItem`, `DeleteItem`, `Query`, `BatchGetItem`, `BatchWriteItem`, `Scan` **scoped** to table ARNs.
 
-- [ ] **Step 3: Inject** `OTAVIA_TABLE_<ID>_NAME` into function environment from `Ref` table name.
+- [x] **Step 3: Inject** `OTAVIA_TABLE_<ID>_NAME` into function environment from `Ref` table name.
 
-- [ ] **Step 4: Run** `bun test --cwd packages/host-aws src/`.
+- [x] **Step 4: Run** `bun test --cwd packages/host-aws src/`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/host-aws
@@ -204,24 +206,24 @@ git commit -m "feat(host-aws): provision DynamoDB tables and env for TableStore"
 
 ---
 
-### Task 7: `host-azure` — Bicep Cosmos Table + role + app settings
+### Task 7: `host-azure` — Bicep Cosmos Table + app settings ✅（表访问为连接串 + key，非托管身份）
 
 **Files:**
 - Modify: `packages/host-azure/src/template/`
 - Modify: `packages/host-azure/src/deploy/deploy-stack.ts` if needed
 - Test: Bicep unit tests
 
-- [ ] **Step 1: Add** Cosmos DB account with **Table API** capability (or storage account + Table if product choice — **default per spec: Cosmos Table API**; document if simplified to Storage Tables for dev-only).
+- [x] **Step 1: Add** Cosmos DB account with **Table API** capability (or storage account + Table if product choice — **default per spec: Cosmos Table API**; document if simplified to Storage Tables for dev-only).
 
-- [ ] **Step 2: Create** table resources per logical id.
+- [x] **Step 2: Create** table resources per logical id.
 
-- [ ] **Step 3: Wire** function app / function managed identity with `Contributor` or data-plane role as required by Table API access pattern.
+- [x] **Step 3: Wire** function app / function managed identity with `Contributor` or data-plane role as required by Table API access pattern.
 
-- [ ] **Step 4: Emit** app settings for `OTAVIA_TABLE_*` and endpoint/account URL.
+- [x] **Step 4: Emit** app settings for `OTAVIA_TABLE_*` and endpoint/account URL.
 
-- [ ] **Step 5: Run** `bun test --cwd packages/host-azure src/`.
+- [x] **Step 5: Run** `bun test --cwd packages/host-azure src/`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/host-azure
@@ -230,18 +232,18 @@ git commit -m "feat(host-azure): provision Cosmos Table API and env for TableSto
 
 ---
 
-### Task 8: CLI glue (if deploy path reads stack model today)
+### Task 8: CLI glue ✅（`deployInputFromStackModel` → `DeployInput.resourceTables`）
 
 **Files:**
 - Under `packages/cli/src/` — locate deploy command and ensure `DeployInput.environments` includes merged table env from `StackModel`.
 
-- [ ] **Step 1: Trace** current `deploy` flow from `packages/cli` into `host-*`.
+- [x] **Step 1: Trace** current `deploy` flow from `packages/cli` into `host-*`.
 
-- [ ] **Step 2: Pass** resolved table env keys from `buildStackModel` output into `deployStack`.
+- [x] **Step 2: Pass** resolved table env keys from `buildStackModel` output into `deployStack`.
 
-- [ ] **Step 3: Run** `bun test --cwd packages/cli src/` (and any integration smoke per `@.cursor/skills/run-sanity-checks/SKILL.md` if applicable).
+- [x] **Step 3: Run** `bun test --cwd packages/cli src/` (and any integration smoke per `@.cursor/skills/run-sanity-checks/SKILL.md` if applicable).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/cli/src
@@ -250,7 +252,7 @@ git commit -m "feat(cli): pass table env bindings to host deploy"
 
 ---
 
-### Task 9: Documentation cross-link
+### Task 9: Documentation cross-link — **未做（可选）**
 
 **Files:**
 - Modify: `docs/superpowers/plans/2026-03-23-otavia-cli-multicloud.md` **only if** maintainers want a backlink (optional); otherwise skip (YAGNI).
@@ -272,10 +274,8 @@ Fix issues until approved (max 3 reviewer loops, then escalate to human).
 
 ## Execution handoff
 
-**Plan complete and saved to `docs/superpowers/plans/2026-03-23-runtime-table-store.md`. Two execution options:**
+**实施已完成（Tasks 1–8）。** 下列选项仅作历史记录。
 
 1. **Subagent-Driven (recommended)** — dispatch a fresh subagent per task, review between tasks. **REQUIRED SUB-SKILL:** `superpowers:subagent-driven-development`.
 
 2. **Inline execution** — run tasks in this session with checkpoints. **REQUIRED SUB-SKILL:** `superpowers:executing-plans`.
-
-**Which approach?**
