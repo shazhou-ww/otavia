@@ -20,7 +20,11 @@ program
   .description("Create a new Otavia workspace (stacks + cells)")
   .argument("[directory]", "empty target directory", ".")
   .option("--provider <id>", 'cloud: "aws" or "azure" (omit to prompt interactively)')
-  .action(async (directory: string, opts: { provider?: string }) => {
+  .option(
+    "--use-global-otavia",
+    "omit stacks/main devDependencies @otavia/cli (avoids install failure when the package is unpublished); scripts use `otavia` on PATH — use `bun link --global` in packages/cli or a global install"
+  )
+  .action(async (directory: string, opts: { provider?: string; useGlobalOtavia?: boolean }) => {
     let p = opts.provider?.trim();
     if (p === "") p = undefined;
     if (p != null && p !== "aws" && p !== "azure") {
@@ -34,7 +38,7 @@ program
     } else {
       throw new Error('Non-interactive init: pass --provider aws or --provider azure');
     }
-    await runInit(directory, { provider });
+    await runInit(directory, { provider, useGlobalOtavia: opts.useGlobalOtavia === true });
   });
 
 program

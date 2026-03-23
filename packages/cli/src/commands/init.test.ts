@@ -19,16 +19,33 @@ describe("runInit", () => {
         devDependencies?: Record<string, string>;
       };
       expect(pkg.workspaces).toEqual(["stacks/*", "cells/*", "packages/*"]);
-      expect(pkg.devDependencies?.["@otavia/cli"]).toBe("0.0.1");
-      expect(pkg.devDependencies?.typescript).toBe("^5.8.3");
+      expect(pkg.devDependencies).toBeUndefined();
       const stackPkg = JSON.parse(
         await readFile(join(dir, "stacks", "main", "package.json"), "utf8")
-      ) as { scripts?: Record<string, string> };
-      expect(stackPkg.scripts?.dev).toBe("otavia dev");
+      ) as { scripts?: Record<string, string>; devDependencies?: Record<string, string> };
+      expect(stackPkg.scripts?.dev).toBe("bunx @otavia/cli dev");
       expect(stackPkg.scripts?.test).toBe("bun test test/unit test/e2e");
-      expect(stackPkg.scripts?.["test:all"]).toBe("otavia test");
+      expect(stackPkg.scripts?.["test:all"]).toBe("bunx @otavia/cli test");
+      expect(stackPkg.devDependencies?.["@otavia/cli"]).toBe("0.0.1");
+      expect(stackPkg.devDependencies?.typescript).toBe("^5.8.3");
       await readFile(join(dir, "cells", "hello", "test", "unit", "handler.test.ts"), "utf8");
       await readFile(join(dir, "cells", "hello", "cell.yaml"), "utf8");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("useGlobalOtavia omits @otavia/cli devDependency and uses plain otavia in scripts", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "otavia-init-"));
+    try {
+      await runInit(dir, { provider: "aws", useGlobalOtavia: true });
+      const stackPkg = JSON.parse(
+        await readFile(join(dir, "stacks", "main", "package.json"), "utf8")
+      ) as { scripts?: Record<string, string>; devDependencies?: Record<string, string> };
+      expect(stackPkg.devDependencies?.["@otavia/cli"]).toBeUndefined();
+      expect(stackPkg.scripts?.dev).toBe("otavia dev");
+      expect(stackPkg.scripts?.["test:all"]).toBe("otavia test");
+      expect(stackPkg.devDependencies?.typescript).toBe("^5.8.3");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

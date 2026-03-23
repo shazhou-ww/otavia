@@ -11,5 +11,12 @@
     "test": "bun run --cwd packages/cli-legacy test",
     "build:runtime": "bun run --cwd packages/cli-legacy build:runtime",
     "smoke:init-dev": "bun run --cwd packages/cli-legacy smoke:init-dev"
+  },
+  "module": "index.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
   }
 }

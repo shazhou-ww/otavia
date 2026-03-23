@@ -1,187 +1,146 @@
 ---
 name: manual-test-multicloud-cli
-description: Use when verifying multicloud CLI in a fresh .checks/ workspace; focus on dev (gateway + /hello/) working and otavia test passing; deploy is out of scope for default sign-off. Optional typecheck/lint/setup/toolchain skips per plan.
+description: Use when verifying multicloud CLI in a fresh .checks/ workspace; always packages/cli bun link --global + init --use-global-otavia, then dev (/hello/) + otavia test; deploy out of scope by default.
 ---
 
 # manual-test-multicloud-cli
 
 **Source:** [docs/superpowers/plans/2026-03-23-otavia-cli-multicloud.md](../../../docs/superpowers/plans/2026-03-23-otavia-cli-multicloud.md) — **验证清单（人类 / CI）**.
 
+**Shell（平台无关）：** 下文以 **POSIX `sh` / bash** 为准（macOS、Linux、**Git Bash**、**WSL**）。将 **`OTAVIA_REPO`** 换成本机 monorepo 绝对路径。纯 **Windows PowerShell** 请自行对等替换，或用 bash 执行片段。
+
 **Default acceptance (this skill):**
 
 1. **`dev` 能跑通**：从 `stacks/main` 启动后，**`/hello/`**（或根跳转后的等价路径）返回预期内容，无 gateway “no createAppForBackend” 类致命问题。
-2. **`otavia test` 能跑通**：样例 stack / cell 含 **unit + e2e** 测试目录，`otavia test` exit `0`。
+2. **`otavia test` 能跑通**：样例 stack / cell 含 **unit + e2e**；`otavia test` exit `0`。
 
-**Out of scope unless user explicitly asks:** **`deploy`**（云凭证、真实账号）— 默认不验证、不记入 PASS；若跳过，在报告里写 **`SKIPPED (deploy not required)`** 即可。
+**Out of scope unless user explicitly asks:** **`deploy`** — 默认不验；报告 **`SKIPPED (deploy not required)`**。
 
-**Scope:** One fresh workspace under repo `.checks/` per run; execute steps in order; record exit codes and stdout/stderr (or `.checks/*.log` paths); do not claim a checklist bullet without evidence.
+**Scope:** 每次在 `OTAVIA_REPO/.checks/manual-multicloud/<run-id>/` 新建 workspace；按序执行并留证；无证据不勾清单项。
+
+**Init 唯一路径（本技能）：** 先 **`(cd "$OTAVIA_REPO/packages/cli" && bun link --global)`**，再 **`init "$WS" … --use-global-otavia`**；栈内脚本为 **`otavia …`**（PATH 上 global link 的 **bin `otavia`**）。后续子命令一律 **`CLI="$OTAVIA_REPO/packages/cli/src/cli.ts"`** + **`bun run "$CLI" <subcommand>`**，不依赖栈内是否安装 `@otavia/cli`。
 
 ---
 
-## Group A — Clean temp workspace: init → install → setup → **dev** → **test** → (optional) typecheck / lint
-
-**Maps to plan item:** 干净临时目录：`init` → `bun install --no-cache` → `stacks/main` 下 **setup**（可按需跳过 toolchain）→ **`dev` 可访问** → **`otavia test` 通过** → 可选 typecheck / lint。
+## Group A — init → install → setup → **dev** → **test** → (optional) typecheck / lint
 
 ### 0. Paths
 
-- `OTAVIA_REPO` = monorepo root (contains `packages/cli`).
-- Workspace: `OTAVIA_REPO/.checks/manual-multicloud/<run-id>/` (unique `run-id`, e.g. `yyyyMMdd-HHmmss`). Logs under `OTAVIA_REPO/.checks/`.
+- **`OTAVIA_REPO`**：monorepo 根。
+- **`WS`**：`$OTAVIA_REPO/.checks/manual-multicloud/<run-id>`。
 
 ### 1. Prepare empty directory
 
-```powershell
-$OTAVIA_REPO = "D:\Code\otavia"   # adjust
-$runId = Get-Date -Format "yyyyMMdd-HHmmss"
-$ws = Join-Path $OTAVIA_REPO ".checks/manual-multicloud/$runId"
-New-Item -ItemType Directory -Force -Path $ws | Out-Null
-Set-Location $OTAVIA_REPO
+```sh
+OTAVIA_REPO="/path/to/otavia"
+RUN_ID="$(date +%Y%m%d-%H%M%S)"
+WS="$OTAVIA_REPO/.checks/manual-multicloud/$RUN_ID"
+mkdir -p "$WS"
+cd "$OTAVIA_REPO"
 ```
 
-### 2. `init`
+### 2. `init`（`bun link --global` + `--use-global-otavia`）
 
-```powershell
-bun run packages/cli/src/cli.ts init $ws --provider aws
+```sh
+( cd "$OTAVIA_REPO/packages/cli" && bun link --global )
+cd "$OTAVIA_REPO"
+bun run packages/cli/src/cli.ts init "$WS" --provider aws --use-global-otavia
 ```
 
-**Verify:** exit `0`; `Join-Path $ws 'stacks/main/otavia.yaml'` exists. Optional: second workspace with `--provider azure`.
+**Verify：** exit `0`；存在 **`$WS/stacks/main/otavia.yaml`**。可选：`--provider azure`。
 
 ### 3. `bun install --no-cache`
 
-**CLI 未发布到 registry 时**：在 `$ws` 根把 `@otavia/cli` 指到本仓库再安装，例如：
-
-```powershell
-Set-Location $ws
-bun add --no-cache -d (Join-Path $OTAVIA_REPO "packages/cli")
+```sh
+cd "$WS"
 bun install --no-cache
 ```
 
-若已能从 registry 解析 `@otavia/cli`，直接：
+**Verify：** exit `0`。
 
-```powershell
-Set-Location $ws
-bun install --no-cache
+```sh
+CLI="$OTAVIA_REPO/packages/cli/src/cli.ts"
 ```
 
-**Verify:** exit `0`.
+### 3b. `cd` 到 `stacks/main`
 
-```powershell
-$cli = Join-Path $OTAVIA_REPO "packages/cli/src/cli.ts"
+```sh
+cd "$WS/stacks/main"
 ```
 
-### 3b. `Set-Location` to `stacks/main` (required)
-
-`findStackRoot` walks **up** from cwd; `otavia.yaml` lives under `stacks/main`, not workspace root.
-
-```powershell
-Set-Location (Join-Path $ws "stacks/main")
-```
-
-Keep this cwd for steps 4–7 (and optional typecheck / lint).
+步骤 **4–8** 保持此 cwd。
 
 ### 4. `setup`
 
-Without `aws`/`az`, use skip **and** note partial human checklist:
-
-```powershell
-$env:OTAVIA_SETUP_SKIP_TOOLCHAIN = "1"
-bun run $cli setup
+```sh
+export OTAVIA_SETUP_SKIP_TOOLCHAIN=1
+bun run "$CLI" setup
+unset OTAVIA_SETUP_SKIP_TOOLCHAIN
 ```
 
-**Verify:** exit `0`; list `buildStackModel` warnings if any.
-
-```powershell
-Remove-Item Env:OTAVIA_SETUP_SKIP_TOOLCHAIN -ErrorAction SilentlyContinue
-```
+**Verify：** exit `0`；记录 `buildStackModel` warnings。
 
 ### 5. `dev`（**必验**）
 
-**目标：** gateway 挂载 hello cell，`/hello/` 有响应（模板样例 body 为 `ok`）。
+**终端 A：**
 
-终端 A（保持运行）：
-
-```powershell
-bun run $cli dev
+```sh
+bun run "$CLI" dev
 ```
 
-终端 B（cwd 任意）：
+**终端 B：**
 
-```powershell
-# Prefer curl if available
-curl.exe -sS -D - http://127.0.0.1:8787/hello/ -o NUL
-
-# 或 PowerShell
-(Invoke-WebRequest -Uri "http://127.0.0.1:8787/hello/" -UseBasicParsing).Content
+```sh
+curl -sS -i "http://127.0.0.1:8787/hello/"
 ```
 
-**Verify:** HTTP **200**；响应体含 **`ok`**（与模板 `handler` 一致）。若出现 `no cell exported createAppForBackend` 等 404 文案 → **FAIL**。
-
-结束后在终端 A 用 `Ctrl+C` 停掉 dev。
+**Verify：** HTTP **200**，body 含 **`ok`**。404 含 **no createAppForBackend** → **FAIL**。终端 A **Ctrl+C** 停 dev。
 
 ### 6. `test`（**必验**）
 
-样例 **stack** 与 **cell** 均含 `test/unit` 与 `test/e2e`；`otavia test` 对 stack 与各 cell 依次执行 `bun run test`（fail-fast）。
-
-```powershell
-# cwd: stacks/main
-bun run $cli test
+```sh
+bun run "$CLI" test
 ```
 
-**Verify:** exit `0`；日志中应出现对 **stack 目录**与 **`cells/hello`** 的测试运行，且 unit / e2e 均执行。
-
-**说明：** 栈包内 `package.json` 的 `test` 为 **`bun test test/unit test/e2e`**（避免 `otavia test` 递归）；全栈一键跑用上面的 **`bun run $cli test`** 或栈内脚本 **`bun run test:all`**。
+**Verify：** exit `0`；stack 与 **`cells/hello`** 均有测试输出。
 
 ### 7. `typecheck`（可选）
 
-```powershell
-bun run $cli typecheck
+```sh
+bun run "$CLI" typecheck
 ```
-
-**Verify:** exit `0`. 模板栈/cell 使用 `tsc --noEmit`；若未装全依赖可记 **tooling-limited**。
 
 ### 8. `lint`（可选）
 
-```powershell
-bun run $cli lint
+```sh
+bun run "$CLI" lint
 ```
-
-**Verify:** exit `0`. No `biome.json` → CLI may print nothing to do; exit `0` is pass but report **tooling-limited** lint.
 
 ---
 
 ## Group B — Deploy（默认不验）
 
-**Maps to plan item:** 有凭证时 AWS / Azure `deploy` 成功。
-
-**本 skill 默认不要求执行 Group B。** 仅当用户明确要求且已确认凭证与安全账号时再跑；否则报告 **`SKIPPED (deploy not required)`**。
-
-```powershell
-$cli = Join-Path $OTAVIA_REPO "packages/cli/src/cli.ts"
-bun run $cli deploy
+```sh
+CLI="$OTAVIA_REPO/packages/cli/src/cli.ts"
+bun run "$CLI" deploy
 ```
 
-**Verify (only if run):** exit `0` per provider.
+否则 **`SKIPPED (deploy not required)`**。
 
 ---
 
-## Group C — `buildStackModel` coverage vs plan
+## Group C — `buildStackModel` 与计划对照
 
-**Maps to plan item:** 环检测、`cells[mount].params` 非法 `!Var`、未知键 warning。
-
-From `OTAVIA_REPO`:
-
-```powershell
+```sh
+cd "$OTAVIA_REPO"
 bun run --cwd packages/stack test
 ```
 
-**Verify:** exit `0`; capture pass/fail summary.
-
-Map to plan using `packages/stack/src/build-stack-model.test.ts` **and** related tests (`parse-otavia-yaml`, `resolve-cell-mount-params`, etc.). If a plan row has no test, report **`GAP`** — do not claim coverage by tests alone.
-
-| Plan expectation | Evidence to cite |
-|------------------|------------------|
-| Cycle detection | test name + file |
-| Invalid `!Var` / disallowed refs in cell params | test name + file |
-| Unknown keys → warning | test name + file |
+| Plan 期望 | 证据 |
+|-----------|------|
+| 环检测 | test 名 + 文件 |
+| cell params 非法 `!Var` 等 | test 名 + 文件 |
+| 未知键 → warning | test 名 + 文件 |
 
 ---
 
@@ -190,7 +149,8 @@ Map to plan using `packages/stack/src/build-stack-model.test.ts` **and** related
 ```markdown
 ## manual-test-multicloud-cli
 
-- **Group A** (`.checks/manual-multicloud/<run-id>`): PASS | FAIL — setup …; **dev** …; **test** …; optional typecheck/lint …
+- **Init / install:** `bun link --global`（`packages/cli`）+ `init --use-global-otavia` + `bun install --no-cache`
+- **Group A**: PASS | FAIL — setup …; **dev** …; **test** …; optional typecheck/lint …
 - **Group B (deploy)**: SKIPPED (default) | PASS | FAIL — …
 - **Group C**: PASS | FAIL — summary; coverage / GAP — …
 ```

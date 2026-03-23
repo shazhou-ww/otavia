@@ -7,9 +7,23 @@ description: Use when the user points at a specific plan markdown and wants a ne
 
 ## Overview
 
-Turn a **named plan document** into a **separate** skill under `.cursor/skills/manual-test-<short>/SKILL.md`, following the same pattern as **manual-test-multicloud-cli**: grouped steps, per-step **Verify**, `.checks/` workspaces and logs, optional **SKIPPED** / **GAP** honesty, report template. **Do not** fold new suites into `run-sanity-checks` body — only register them in its index table.
+Turn a **named plan document** into a **separate** skill under `.cursor/skills/manual-test-<short>/SKILL.md`, following the same pattern as **manual-test-multicloud-cli**: grouped steps, per-step **Verify**, `.checks/` workspaces and logs, optional **SKIPPED** / **GAP** honesty, report template. Any **`init` into `.checks/`** for Otavia stacks **must** follow **Standard: Otavia CLI workspaces** above (link + `--use-global-otavia` + `CLI=…` + `bun run "$CLI"`). **Do not** fold new suites into `run-sanity-checks` body — only register them in its index table.
 
 **REQUIRED:** Read **run-sanity-checks** for shared rules (`.checks/`, evidence gate). This skill adds authoring steps only.
+
+## Standard: Otavia CLI workspaces（`manual-test-*` 强制一致）
+
+凡计划在 **`.checks/…`** 下用 monorepo 里的 **`@otavia/cli` `init`** 搭临时栈的 **`manual-test-*` 技能**，**只写一条路**，不要写「registry 能装则用默认 init」之类的分支速查：
+
+1. **`bun link --global`**：在 **`$OTAVIA_REPO/packages/cli`** 执行（init 前一次即可；同一次跑可重复执行无害）。
+2. **`init`**：始终带 **`--use-global-otavia`**（以及计划要求的 `--provider` 等），例如  
+   `bun run "$OTAVIA_REPO/packages/cli/src/cli.ts" init "$WS" --provider aws --use-global-otavia`。
+3. **`bun install --no-cache`**：在 **`$WS` 根执行**（Windows Bun cache 问题，勿省 `--no-cache`）。
+4. **`setup` / `dev` / `test` / …**：设 **`CLI="$OTAVIA_REPO/packages/cli/src/cli.ts"`**，用 **`bun run "$CLI" <subcommand>`**；不要假设栈里已解析 **`devDependencies.@otavia/cli`**。
+5. **Shell 示例**：用 **POSIX `sh` / bash** 块（macOS、Linux、**Git Bash**、**WSL**）；纯 Windows PowerShell 时在技能里**一句说明**由执行者自行对等改写路径与语法。
+6. **报告模板**里 **Init / install** 只描述上述单一路径（勿写「registry | link」二选一）。
+
+参考实现：**manual-test-multicloud-cli**。
 
 ## Inputs (confirm if missing)
 
@@ -30,9 +44,9 @@ Turn a **named plan document** into a **separate** skill under `.cursor/skills/m
    - For each **Group**: heading, **Maps to plan item:** quote or paraphrase the plan bullet; numbered substeps; each executable step followed by **Verify:** exit codes, files, or observable outcomes.
    - Call out **cwd / path traps** (e.g. CLI resolves stack only from certain directories), **env skips** (`OTAVIA_SETUP_SKIP_TOOLCHAIN`), **tooling-limited** passes (no `biome.json`), **credentials required** blocks with **SKIPPED** if not met.
    - **Automated checks** tied to the plan: exact commands (e.g. `bun run --cwd packages/stack test`), plus a **coverage / GAP** table when the plan claims test coverage that may span multiple files.
-   - **Report template** at the end; heading uses the skill id (`## manual-test-<slug>`).
+   - **Report template** at the end; heading uses the skill id (`## manual-test-<slug>`). If init applies, include **Init / install** line matching **Standard: Otavia CLI workspaces** (single path only).
 5. **Register** in **run-sanity-checks** `SKILL.md` → **Index** table: new row **Skill** + one-line **Focus** (plan filename + what the suite covers).
-6. **Otavia repo defaults** when commands involve Bun: `bun install --no-cache` in manual temp workspaces (Windows Bun cache issue); prefer **PowerShell** examples on Windows; use `Tee-Object` to `.checks/*.log` for noisy steps.
+6. **Otavia repo / Bun：** 临时 workspace 一律 **`bun install --no-cache`**。手工步骤正文用 **POSIX sh/bash** 与上文标准一致；需要 Windows 专用说明时单独一句，勿与标准 init 路径分叉矛盾。冗长输出可用 `tee` 写到 `.checks/*.log`（bash）或说明 PowerShell 用 `Tee-Object`。
 
 ## Generated `SKILL.md` shape (fill in)
 
@@ -88,6 +102,7 @@ Avoid vague slugs (`manual-test-plan`, `manual-test-v2`).
 | Cwd breaks CLI discovery | Mirror **manual-test-multicloud-cli** §3b pattern when `otavia.yaml` is under `stacks/main` |
 | Checklist in `run-sanity-checks` | Keep only the **index row** there; full steps stay in **manual-test-*** |
 | Description = workflow summary | Triggers only; steps live in body |
+| `.checks/` init 写「默认 init + registry 拉 `@otavia/cli`」或决策表 | 只写 **link + `--use-global-otavia`** + **`CLI` + `bun run "$CLI"`**（见 **Standard: Otavia CLI workspaces**） |
 
 ## Related
 
