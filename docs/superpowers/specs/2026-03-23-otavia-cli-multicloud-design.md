@@ -89,15 +89,17 @@
   - AWS：含 **`region`** 等；
   - Azure：含 **`location`** 等。
 - **`cells`**：值为 **npm 包名**（如 `@acme/hello`），**禁止**使用文件系统路径引用 cell。
-- **`params`**：参数树根；规则见 §6。
+- **`variables`**：栈级「命名值」树根（原顶层 `params` 概念由本字段承载）；**仅**允许 **`!Env` / `!Secret` / `!Var`** 与字面量，**禁止 `!Param`**；规则见 §6。
+- **`cells[mount].params`**：向该 cell **传入**的参数字典（键应对齐对应 `cell.yaml` 的 **`params` 声明**）；值可为字面量或 **`!Var`**（**仅**能引用顶层 **`variables`** 中的键），**禁止 `!Param`**。
 - 其他全局键（如 `domain`）由 MVP schema **显式列举**；**未在 schema 中声明的键**：**记 warning，不中断**（§6.4）。
 
 ### 5.2 `cell.yaml`（云无关）
 
 - 描述前后端入口、路由、构建/运行约定等（MVP 字段表在实现计划中细化）。
-- **`params` 段**：声明本 cell **需要从外部接收**的参数名集合（建议延续 legacy：**字符串数组**）。
-- **「函数」语义**：除 `params` 声明外，正文中的配置由**传入的 param 值**实例化；正文中若使用 **`!Param`**，**仅能引用**本 `cell.yaml` **`params` 已声明**的名字。
-- **`!Env` / `!Secret`**：**禁止**出现在 `cell.yaml`。
+- **`params` 段**：声明本 cell **需要从 stack 侧 `cells[mount].params` 接收**的参数名集合（建议延续 legacy：**字符串数组**）。
+- **`variables` 段**（可选）：cell 级命名值；段内允许 **字面量、`!Var`（引用本段其它键，须无环）、`!Param`（仅 `params` 已声明的名字）**；段内 **`!Var` 依赖图须做环路检测**；**`!Var` 在目标键不在本段树内时**是否回退进程环境，与栈级 **`variables`** 一致（见 §6.2）。
+- **`!Param` / `!Var`（`variables` 段外正文）**：在 **`variables` 段解析完成之后**，其余配置可使用 **`!Param`**（**仅** `params` 已声明）与 **`!Var`**（**仅**本文件 **`variables` 段**已定义的键）。
+- **`!Env` / `!Secret`**：**禁止**出现在 `cell.yaml`（含 **`variables` 段**）。
 - **未知键**：**warning**（§6.4）。
 
 ### 5.3 Cell 解析与 stack 包依赖
@@ -108,29 +110,38 @@
 
 ---
 
-## 6. `!Env` / `!Secret` / `!Param` 与 Stack 模型
+## 6. `!Env` / `!Secret` / `!Var` / `!Param` 与 Stack 模型
 
 ### 6.1 出现位置
 
 | 标签 | `otavia.yaml` | `cell.yaml` |
 |------|---------------|-------------|
-| `!Env` / `!Secret` | **仅** `params` 树内 | **禁止** |
-| `!Param` | **顶层 `params`**：允许树内互引（须无环）；**`cells[mount].params`**：**仅**允许 `!Param` 引用**顶层 `params` 的键**（与 legacy 不同，**顶层允许 `!Param`**） | **允许**于正文（不得出现在 `params` 声明列表的「键名」语义之外；即声明仍用字符串数组） |
+| `!Env` / `!Secret` | **仅**顶层 **`variables`** 树内 | **禁止**（含 **`variables` 段**） |
+| `!Var` | **仅**顶层 **`variables`** 树内（树内互引，须无环）；**`cells[mount].params` 的值中**（**仅**能 `!Var` 到顶层 **`variables`** 的键） | **`variables` 段内**（**仅** `!Var` 互指本段键，须无环）；**段外正文**（**仅**能 `!Var` 到本文件 **`variables` 已解析**的键） |
+| `!Param` | **禁止**（全文件任意位置均不得出现） | **`variables` 段内与段外**均可（**仅**能引用本文件 **`params` 已声明**的键） |
 
-**`cells[mount].params`（在 `otavia.yaml` 内）**：可含 `!Param`，但 **`!Param` 只能引用顶层 `params` 中的键**（取该键在 **步骤 2** 已解析完毕的值）；**禁止**引用本 mount 下 `cells[mount].params` 的兄弟键、**禁止**引用其它 `cells[other].params`、**禁止**在无对应顶层键时回退为「仅环境中有名」的隐式来源（环境只能通过 **顶层 `params` 里的 `!Env`/`!Secret`/字面量/合法 `!Param` 链**间接进入 cell 侧）。
+**命名说明**：**`!Var`** 表示引用 **同一文件内对应 `variables` 对象树**中的键；**`!Param`** 仅用于 **cell**，表示引用 **自 stack 经 `cells[mount].params` 传入**、且在 **`params` 声明**中出现过的名字。
+
+**`cells[mount].params`（在 `otavia.yaml` 内）**：值可为字面量或 **`!Var`**；**`!Var` 只能引用顶层 `variables` 中已存在的键**（取 **步骤 2** 已解析完毕的值）；**禁止**引用本 mount 下兄弟键、其它 `cells[other].params`、或「顶层无该键而仅靠环境同名」的隐式来源（环境须经由 **顶层 `variables` 的 `!Env`/`!Secret`/字面量/合法 `!Var` 链**进入 cell 侧）。
 
 ### 6.2 解析顺序（规范层要求）
 
 1. 按 **当前子命令**加载环境文件（§6.3），形成合并后的进程环境。
-2. **仅解析顶层 `params`**：
-   - **`!Param` 允许引用同一顶层 `params` 对象树内的其它键**（兄弟或嵌套键）；**须针对该树内 `!Param` 边建依赖图、检测环路，有环则报错**；无环则 **拓扑排序** 后求值。
-   - **树外回退**（**仅适用于顶层 `params` 内的 `!Param`**）：若目标名在**顶层 `params` 树内**无对应键，则 **`!Param` 从步骤 1 之后的进程环境**按同名取值（键名与 tag 形式与 legacy 对齐）。
-   - **`!Env` / `!Secret`**：仅在允许位置出现；与顶层 `!Param` 混排时服从同一 **拓扑顺序**。
-3. **解析各 `cells[mount].params`**：其中出现的 **`!Param` 仅能引用步骤 2 中顶层 `params` 已存在的键名**，代入 **步骤 2 的解析结果**；不得再引入指向 `cells[*.params]` 的依赖边。
-4. 合并 **步骤 2 + 3** 对每一 cell 的 **param 供给**，并校验 **`cell.yaml` 的 `params` 声明**均已得到满足。
-5. 对每个 cell：在 **合并到该 cell 的最终 param 映射**上，解析 **`cell.yaml` 正文中的 `!Param`**，得到 **最终 cell 配置**（**仅**能引用该 `cell.yaml` **`params` 已声明**的键）。
+2. **仅解析顶层 `variables`（`otavia.yaml`）**：
+   - **`!Var` 允许引用同一顶层 `variables` 对象树内的其它键**；**须建依赖图、检测环路，有环则报错**；无环则 **拓扑排序** 后求值。
+   - **树外回退**（**仅适用于顶层 `variables` 内的 `!Var`**）：若目标名在**该树内**无对应键，则 **`!Var` 从步骤 1 之后的进程环境**按同名取值（键名与 tag 形式可对齐 legacy 原 `!Param` 行为）。
+   - **`!Env` / `!Secret`**：仅在上述树内出现；与 **`!Var`** 混排时服从同一 **拓扑顺序**。
+3. **解析各 `cells[mount].params`**：其中的 **`!Var` 仅能引用步骤 2 中顶层 `variables` 已存在的键名**，代入 **步骤 2 的解析结果**；**不得**出现 `!Param`；**不得**产生指向 `cells[*.params]` 的依赖边。
+4. 对每一 cell：用 **步骤 3** 的结果校验 **`cell.yaml` 的 `params` 声明**是否均已供给。
+5. **解析 `cell.yaml` 的 `variables` 段**（若存在）：段内为 **字面量、`!Param`（取值来自步骤 4 的 param 映射）、`!Var`（引用本段其它键）**；**仅 `!Var → !Var` 边**参与环路检测，**须无环**；拓扑求值时 **`!Param` 叶**可先解析；**`!Var` 树外回退**与步骤 2 对称（**无对应键则回退步骤 1 后的进程环境**）。
+6. 解析 **`cell.yaml` 的 `variables` 段外配置**：可使用 **`!Param`**（步骤 4）与 **`!Var`**（**仅**步骤 5 已定义的键）。
 
-**循环依赖**：**强制环路检测**仅针对 **顶层 `params` 内部**的 `!Param` 树内引用；**成环或无法拓扑排序则报错**（不作为 warning）。`cells[mount].params` 因 **不得树内互引**，**不参与**该环检测图。
+**循环依赖**：**每一个 `variables` 段**（`otavia.yaml` 顶层一处 + 每个 `cell.yaml` 最多一处）**各自**对段内 **`!Var → !Var` 边**做环路检测；**成环或无法拓扑排序则报错**。**`cell.yaml` 的 `variables` 段**中 **`!Param` 不构成 `!Var` 环上的边**（视为来自已解析的 param 层）。`cells[mount].params` **不参与**任一段 `variables` 的构图。
+
+### 6.2.1 `!Param` 与 `!Var` 的边界（摘要）
+
+- **`otavia.yaml`**：只用 **`variables` + `!Var`/`!Env`/`!Secret`**；**不出现 `!Param`**。
+- **`cell.yaml`**：**`variables` 段**内 **`!Var` 互引**（无环）+ **`!Param`**（栈入口）+ 字面量；**段外**继续可用 **`!Param`** 与 **`!Var`**（指向已解析的本 cell 变量）。
 
 ### 6.3 环境文件与命令
 
@@ -148,14 +159,14 @@
 ### 6.4 未知配置项与非法用法
 
 - **Schema 未声明的键**（`otavia.yaml` / `cell.yaml`）：**warning**，**不中断**。
-- **非法 tag 位置**（如 `cell.yaml` 出现 `!Env`）、**`!Param` 引用未在 `cell.yaml` 的 `params` 中声明的键**等：**error**。
+- **非法 tag 位置**（如 `cell.yaml` 出现 `!Env` / `!Secret`）、**`otavia.yaml` 出现 `!Param`**、**`!Param` 引用未在 `cell.yaml` 的 `params` 中声明的键**、**`!Var` 引用非法目标**（如 `cells[mount].params` 中 `!Var` 非顶层 `variables` 键）等：**error**。
 
 ### 6.5 最终 Stack 对象
 
 - **路径**：所有文件类引用在 Stack 模型中统一为 **相对于 stack 根目录**的相对路径（路径分隔符在 spec 实现附录中固定，如 POSIX 风格）。
 - **绑定保留**：必须保留
-  - **`environments`**：`!Env` 相关绑定（逻辑键 ↔ 环境变量名等，形状在实现计划中定义）；
-  - **`secrets`**：`!Secret` 相关绑定（供 `deploy` 时映射到 SSM、Key Vault 等，由 `host-*` 消费）。
+  - **`environments`**：源自 **`otavia.yaml` 的 `variables`** 中 **`!Env`** 的绑定（逻辑键 ↔ 环境变量名等，形状在实现计划中定义）；
+  - **`secrets`**：源自同一 **`variables`** 树中 **`!Secret`** 的绑定（供 `deploy` 时映射到 SSM、Key Vault 等，由 `host-*` 消费）。
 - **`cells`**：**直接展开**的最终 cell 配置（**不使用** `resolvedCells` 等并行数组结构）。
 
 ---
@@ -167,7 +178,7 @@
 | 命令 | 职责概要 |
 |------|----------|
 | `init` | 在目标目录初始化**终端项目**：workspace、示例 cell 包、示例 stack 包（`package.json` **已依赖**示例 cell）、`.gitignore`（含 **`.otavia/`**）等。 |
-| `setup` | 在当前 stack 下：校验/安装 **dev 与 deploy 所需工具**（由 `host-*` 定义）；处理 `.env.example` → `.env`；校验 param 与 `!Env`/`!Secret` 可满足性（**具体规则在实现计划中列明，默认对齐 legacy `setup`**）。 |
+| `setup` | 在当前 stack 下：校验/安装 **dev 与 deploy 所需工具**（由 `host-*` 定义）；处理 `.env.example` → `.env`；校验 **cell `params` 供给**与 **`variables` 中 `!Env`/`!Secret`/`!Var`（环境回退）**可满足性（**具体规则在实现计划中列明，默认对齐 legacy `setup` 精神**）。 |
 | `dev` | 加载 §6.3 `dev` 环境文件；CLI 编排 **Vite + 本地网关**；云凭证检查委托 `host-*`。 |
 | `test` | 加载 §6.3 `test` 环境文件；对 **stack 包与依赖 cell 包**运行测试（顺序与 fail-fast 策略在实现计划中固定）。 |
 | `lint` | 对 stack 及 cells 运行 **Biome**（或项目约定工具）。 |
@@ -194,8 +205,8 @@
 ## 10. 与 legacy 的已知差异（摘要）
 
 - 布局与包名：**终端项目**使用 **`stacks/`**；CLI 包为 **`@otavia/cli`**；**双云**与 **`host-*` / `runtime-*` 拆分**。
-- **顶层 `otavia.yaml` `params` 允许 `!Param`**（legacy 禁止）；且 **顶层 `params` 内 `!Param` 可互相引用**，**须做环路检测**（legacy 若未统一建图，以实现为准）。**`cells[mount].params` 中的 `!Param` 只能引用顶层 `params`**，不得引用其它 cell 条目或本条目内兄弟键。
-- **`cell.yaml` 正文允许 `!Param`**，且受 **`params` 声明**约束；仍 **禁止 `!Env`/`!Secret`**。
+- **栈级命名值**：legacy 顶层 **`params`** 更名为 **`variables`**；**`!Param` 不在 `otavia.yaml` 出现**，改为 **`!Var`** 表示引用 **`variables` 树**内键。**顶层 `variables` 内 `!Var` 互引须无环**；**`cells[mount].params` 仅允许 `!Var` 引用顶层 `variables` 键**（不得树内互引、不得跨 cell）。
+- **`cell.yaml`**：新增可选 **`variables` 段**（段内 **`!Var` 互引须无环**，可与 **`!Param`** 混用）；**段内外**均可用 **`!Param`/`!Var`**（规则见 §6）；仍 **禁止 `!Env`/`!Secret`**。
 - Cell 定位：**仅**通过 **stack 包依赖 + `node_modules` 解析**，不扫 `cells/` 目录树。
 - **未知 YAML 键**：**warning**（legacy 可能更严，以实现为准）。
 
