@@ -4,9 +4,6 @@
   "workspaces": {
     "": {
       "name": "otavia-monorepo",
-      "devDependencies": {
-        "@types/bun": "latest",
-      },
       "peerDependencies": {
         "typescript": "^5",
       },
