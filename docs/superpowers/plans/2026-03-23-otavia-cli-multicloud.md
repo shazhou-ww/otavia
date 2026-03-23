@@ -255,11 +255,11 @@
 - Create: `packages/cli/src/commands/init.ts`
 - Create: `packages/cli/src/commands/init.test.ts`（在 temp 目录跑 init）
 
-- [ ] **Step 1:** 生成 **workspace** `package.json`，`workspaces` 包含 `stacks/*`、`cells/*`、`packages/*`（若模板含 packages）。
-- [ ] **Step 2:** `stacks/main/package.json` **dependencies** 含 `@scope/hello`（与 `cells/hello` 包名一致）。
-- [ ] **Step 3:** `otavia.yaml` 含 `variables`、`cells` 包名、`provider`（**AWS 模板仅 `region`**，**Azure 模板仅 `location`**，与 §5.1 一致；或 `--provider` 开关切换两套默认文件）。
-- [ ] **Step 4:** `cell.yaml` 含最小 `backend`/`frontend`、`params`/`variables` 可选示例。
-- [ ] **Step 5:** Commit：`feat(cli): otavia init template`
+- [x] **Step 1:** 生成 **workspace** `package.json`，`workspaces` 包含 `stacks/*`、`cells/*`、`packages/*`（若模板含 packages）。
+- [x] **Step 2:** `stacks/main/package.json` **dependencies** 含 `@scope/hello`（与 `cells/hello` 包名一致）。
+- [x] **Step 3:** `otavia.yaml` 含 `variables`、`cells` 包名、`provider`（**AWS 模板仅 `region`**，**Azure 模板仅 `location`**，与 §5.1 一致；或 `--provider` 开关切换两套默认文件）。
+- [x] **Step 4:** `cell.yaml` 含最小 `backend`/`frontend`、`params`/`variables` 可选示例。
+- [x] **Step 5:** Commit：`feat(cli): otavia init template`
 
 ---
 
@@ -268,10 +268,10 @@
 **Files:**
 - Create: `packages/cli/src/commands/setup.ts`
 
-- [ ] **Step 1:** 调用 `host.checkToolchain`；从 `.env.example` 复制缺失的 `.env`（对齐 legacy 行为精神）。
-- [ ] **Step 2:** 调用 `buildStackModel`（`command` 用 `dev` 或 `setup` 专用：若 spec 未定义，**采用 `dev` 的 env 链**并在 README 注一句）。**必须**执行与 **spec §6.2 步骤 4** 一致的校验：**每个 cell 的 `params` 声明均有 `cells[mount].params` 供给**；不满足则 **exit 1**（与 `buildStackModel` throw 对齐）。
-- [ ] **Step 3:** 对缺失 `!Env`/`!Secret`（及 `!Var` 环境回退缺键）打印 **warning**（不强制 exit 1），但 **步骤 2 的配置错误不得被吞掉**。
-- [ ] **Step 4:** Commit：`feat(cli): setup command`
+- [x] **Step 1:** 调用 `host.checkToolchain`；从 `.env.example` 复制缺失的 `.env`（对齐 legacy 行为精神）。
+- [x] **Step 2:** 调用 `buildStackModel`（`command` 用 `dev` 或 `setup` 专用：若 spec 未定义，**采用 `dev` 的 env 链**并在 README 注一句）。**必须**执行与 **spec §6.2 步骤 4** 一致的校验：**每个 cell 的 `params` 声明均有 `cells[mount].params` 供给**；不满足则 **exit 1**（与 `buildStackModel` throw 对齐）。
+- [x] **Step 3:** 对缺失 `!Env`/`!Secret`（及 `!Var` 环境回退缺键）打印 **warning**（不强制 exit 1），但 **步骤 2 的配置错误不得被吞掉**。
+- [x] **Step 4:** Commit：`feat(cli): setup command`
 
 ---
 
@@ -280,9 +280,9 @@
 **Files:**
 - Create: `packages/cli/src/commands/deploy.ts`
 
-- [ ] **Step 1:** `loadEnvForCommand(..., 'deploy')`；`buildStackModel`；`checkCredentials`；`deployStack`。
-- [ ] **Step 2:** 缺密钥或变量时 **exit 1**（与 spec error 语义一致）。
-- [ ] **Step 3:** Commit：`feat(cli): deploy command`
+- [x] **Step 1:** `loadEnvForCommand(..., 'deploy')`；`buildStackModel`；`checkCredentials`；`deployStack`。
+- [x] **Step 2:** 缺密钥或变量时 **exit 1**（与 spec error 语义一致）。
+- [x] **Step 3:** Commit：`feat(cli): deploy command`
 
 ---
 

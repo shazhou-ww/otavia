@@ -1,0 +1,5 @@
+{
+  "name": "otavia-workspace",
+  "private": true,
+  "workspaces": ["stacks/*", "cells/*", "packages/*"]
+}

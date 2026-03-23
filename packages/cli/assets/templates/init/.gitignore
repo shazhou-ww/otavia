@@ -1,0 +1,5 @@
+node_modules/
+.otavia/
+.env
+.env.*
+!.env.example

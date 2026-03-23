@@ -1,0 +1,8 @@
+name: hello
+params: []
+backend:
+  runtime: bun
+  entries:
+    api:
+      handler: handler.ts
+      routes: []

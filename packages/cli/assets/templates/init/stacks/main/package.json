@@ -1,0 +1,8 @@
+{
+  "name": "@demo/main-stack",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@demo/hello": "workspace:*"
+  }
+}
