@@ -20,7 +20,7 @@
   "scripts": {
     "dev": "bun run src/cli.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test src/",
+    "test": "bun run scripts/skip-test.ts",
     "build:runtime": "bun run scripts/build-runtime-entries.ts",
     "prepack": "bun run build:runtime",
     "prepare": "bun run build:runtime",

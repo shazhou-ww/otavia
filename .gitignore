@@ -1,4 +1,5 @@
 .worktrees/
+.checks/
 node_modules/
 dist/
 .otavia/
