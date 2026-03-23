@@ -122,7 +122,7 @@
 ### 6.2 解析顺序（规范层要求）
 
 1. 按 **当前子命令**加载环境文件（§6.3），形成合并后的进程环境。
-2. 解析 **`otavia.yaml` 的 `params` 树**：字面量、`!Env`、`!Secret`、**`!Param`**（`!Param` 从 **已加载环境**取值，键名与 tag 约定与 legacy 对齐）。
+2. 解析 **`otavia.yaml` 的 `params` 树**：字面量、`!Env`、`!Secret`、**`!Param`**。其中 **`!Param` 仅从「步骤 1 之后的进程环境」取值**（键名与 tag 形式与 legacy 对齐），**不**引用同一 YAML 文档内其它 `params` 键（避免与 `.env` 来源混淆；若未来扩展层内引用，须单独改版 spec）。
 3. 合并各 **cell 在 `otavia.yaml` 中的 `params` 覆盖/补充**（若存在），并校验 **`cell.yaml` 声明的 param 均已供给**。
 4. 对每个 cell：在 **合并到该 cell 的最终 param 映射**上，解析 **`cell.yaml` 正文中的 `!Param`**，得到 **最终 cell 配置**。
 
@@ -158,12 +158,12 @@
 
 ## 7. 子命令行为（cwd 选定 stack）
 
-**约定**：用户在 **`stacks/<name>/` 目录或其子目录**执行 CLI；向上解析 **workspace 根**与 **当前 stack 根**（含 `otavia.yaml` 的目录）。
+**约定**：用户在 **`stacks/<name>/` 目录或其子目录**执行 CLI；向上解析 **workspace 根**与 **当前 stack 根**（含 `otavia.yaml` 的目录）。**Workspace 根**判定：自 cwd 向父目录查找，**第一个**含有 **`package.json` 且其中声明了 `workspaces`** 的目录（与 `init` 生成的终端项目一致）；实现计划不得引入第二套互斥判定，除非修订本文档。
 
 | 命令 | 职责概要 |
 |------|----------|
 | `init` | 在目标目录初始化**终端项目**：workspace、示例 cell 包、示例 stack 包（`package.json` **已依赖**示例 cell）、`.gitignore`（含 **`.otavia/`**）等。 |
-| `setup` | 在当前 stack 下：校验/安装 **dev 与 deploy 所需工具**（由 `host-*` 定义）；处理 `.env.example` → `.env`；校验 param 与 `!Env`/`!Secret` 可满足性（策略对齐 legacy 或在本 spec 附录写明）。 |
+| `setup` | 在当前 stack 下：校验/安装 **dev 与 deploy 所需工具**（由 `host-*` 定义）；处理 `.env.example` → `.env`；校验 param 与 `!Env`/`!Secret` 可满足性（**具体规则在实现计划中列明，默认对齐 legacy `setup`**）。 |
 | `dev` | 加载 §6.3 `dev` 环境文件；CLI 编排 **Vite + 本地网关**；云凭证检查委托 `host-*`。 |
 | `test` | 加载 §6.3 `test` 环境文件；对 **stack 包与依赖 cell 包**运行测试（顺序与 fail-fast 策略在实现计划中固定）。 |
 | `lint` | 对 stack 及 cells 运行 **Biome**（或项目约定工具）。 |
