@@ -24,6 +24,11 @@ export interface DeployInput {
    * Shape is intentionally loose at contract level — hosts narrow as needed.
    */
   secrets: Record<string, unknown>;
+  /**
+   * Azure: target resource group for `az deployment group create`.
+   * Required when deploying with {@link HostAdapter} `providerId` `"azure"`.
+   */
+  resourceGroup?: string;
 }
 
 /**

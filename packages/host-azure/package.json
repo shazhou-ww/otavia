@@ -4,7 +4,11 @@
   "description": "Azure host implementation (scaffold)",
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src/"
+  },
+  "dependencies": {
+    "@otavia/host-contract": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "^1.3.11",

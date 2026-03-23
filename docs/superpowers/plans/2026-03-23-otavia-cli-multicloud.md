@@ -217,9 +217,9 @@
 - Create: `packages/host-azure/src/azure-host.ts`
 - Create: `packages/host-azure/src/azure-host.test.ts`
 
-- [ ] **Step 1:** `checkToolchain`：`az`、`bicep`（或 `az bicep` 子命令，择一写死）。
-- [ ] **Step 2:** `checkCredentials`：`az account show`。
-- [ ] **Step 3:** Commit：`feat(host-azure): toolchain and credentials checks`
+- [x] **Step 1:** `checkToolchain`：`az`、`bicep`（或 `az bicep` 子命令，择一写死）。
+- [x] **Step 2:** `checkCredentials`：`az account show`。
+- [x] **Step 3:** Commit：`feat(host-azure): toolchain and credentials checks`
 
 ---
 
@@ -229,10 +229,10 @@
 - Create: `packages/host-azure/src/template/minimal-function.bicep`（及 `.parameters` 若需要）
 - Create: `packages/host-azure/src/deploy/write-and-deploy.ts`
 
-- [ ] **Step 1:** 写入 `stackRoot/.otavia/azure/` 下 `.bicep` 文件。
-- [ ] **Step 2:** **`DeployInput`** 同样携带 **`environments` / `secrets`**：MVP 将 `environments` 写入应用设置；`secrets` 对接 **Key Vault 引用**或模板参数（限制与 AWS 对称，文档说明）。
-- [ ] **Step 3:** `az deployment group create` 或订阅级部署（实施时选定一种并写死）；`location` 来自 `provider.location`。
-- [ ] **Step 4:** Commit：`feat(host-azure): minimal bicep deploy`
+- [x] **Step 1:** 写入 `stackRoot/.otavia/azure/` 下 `.bicep` 文件。
+- [x] **Step 2:** **`DeployInput`** 同样携带 **`environments` / `secrets`**：MVP 将 `environments` 写入应用设置；`secrets` 对接 **Key Vault 引用**或模板参数（限制与 AWS 对称，文档说明）。
+- [x] **Step 3:** `az deployment group create` 或订阅级部署（实施时选定一种并写死）；`location` 来自 `provider.location`。
+- [x] **Step 4:** Commit：`feat(host-azure): minimal bicep deploy`
 
 ---
 
