@@ -35,7 +35,7 @@ export async function runDeploy(cwdInput: string = cwd()): Promise<void> {
     throw new Error("Run `otavia deploy` from inside an Otavia workspace.");
   }
 
-  const fileEnv = loadEnvForCommand(workspaceRoot, "deploy");
+  const fileEnv = loadEnvForCommand(stackRoot, "deploy");
   const env = mergeProcessAndFileEnv(fileEnv);
   const model = buildStackModel({ stackRoot, workspaceRoot, env });
   for (const w of model.warnings) {

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { OtaviaCredentialUserError } from "@otavia/host-contract";
 import { createAwsHost } from "./aws-host.js";
 
 describe("createAwsHost", () => {
@@ -33,7 +34,7 @@ describe("createAwsHost", () => {
     expect(calls).toEqual([["aws", "sts", "get-caller-identity"]]);
   });
 
-  test("checkCredentials throws on failure", async () => {
+  test("checkCredentials throws OtaviaCredentialUserError with configure hint", async () => {
     const host = createAwsHost({
       run: async () => ({
         exitCode: 255,
@@ -41,7 +42,14 @@ describe("createAwsHost", () => {
         stderr: "Unable to locate credentials",
       }),
     });
-    await expect(host.checkCredentials()).rejects.toThrow(/credentials check failed/);
+    let err: unknown;
+    try {
+      await host.checkCredentials();
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(OtaviaCredentialUserError);
+    expect((err as Error).message).toContain("aws configure");
   });
 });
 

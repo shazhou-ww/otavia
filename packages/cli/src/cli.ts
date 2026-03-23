@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
+import { OtaviaCredentialUserError } from "@otavia/host-contract";
 import { stdin as input } from "node:process";
 import { Command } from "commander";
 import { runInit } from "./commands/init.js";
+import { runCloudLogin, runCloudLogout } from "./commands/cloud.js";
 import { runDeploy } from "./commands/deploy.js";
 import { runDev } from "./commands/dev.js";
 import { runLintCommand } from "./commands/lint.js";
@@ -43,9 +45,29 @@ program
 
 program
   .command("setup")
-  .description("Bootstrap env files, validate stack model, check cloud CLI")
+  .description(
+    "Bootstrap env files, validate stack model, check cloud CLI; interactive TTY prompts for AWS_PROFILE or AZURE_SUBSCRIPTION_ID"
+  )
   .action(async () => {
     await runSetup();
+  });
+
+const cloud = program
+  .command("cloud")
+  .description("Login or logout for the stack cloud provider (stack .env: AWS_PROFILE, AZURE_SUBSCRIPTION_ID, AZURE_CONFIG_DIR)");
+
+cloud
+  .command("login")
+  .description("Run aws sso login or az login (then az account set when AZURE_SUBSCRIPTION_ID is set)")
+  .action(() => {
+    process.exit(runCloudLogin());
+  });
+
+cloud
+  .command("logout")
+  .description("Run aws sso logout or az logout")
+  .action(() => {
+    process.exit(runCloudLogout());
   });
 
 program
@@ -102,4 +124,12 @@ program
     throw new Error('host-kind: pass exactly one of --region (AWS) or --location (Azure)');
   });
 
-program.parse();
+try {
+  await program.parseAsync(process.argv);
+} catch (e) {
+  if (e instanceof OtaviaCredentialUserError) {
+    console.error(e.message.trimEnd());
+    process.exit(1);
+  }
+  throw e;
+}

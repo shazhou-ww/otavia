@@ -42,7 +42,7 @@ Turn a **named plan document** into a **separate** skill under `.cursor/skills/m
    - **Source:** one markdown link to the plan. Path from `SKILL.md` is **three levels up** to repo root, then plan path: `../../../<plan-from-repo-root>` (always forward slashes).
    - **Scope:** one short paragraph — fresh dirs under `.checks/…`, ordered execution, evidence, no bullet claimed without proof.
    - For each **Group**: heading, **Maps to plan item:** quote or paraphrase the plan bullet; numbered substeps; each executable step followed by **Verify:** exit codes, files, or observable outcomes.
-   - Call out **cwd / path traps** (e.g. CLI resolves stack only from certain directories), **env skips** (`OTAVIA_SETUP_SKIP_TOOLCHAIN`), **tooling-limited** passes (no `biome.json`), **credentials required** blocks with **SKIPPED** if not met.
+   - Call out **cwd / path traps** (e.g. CLI resolves stack only from certain directories), **env skips** (`OTAVIA_SETUP_SKIP_TOOLCHAIN`, `OTAVIA_SETUP_SKIP_CLOUD_IDENTITY` for non-interactive `setup`), **tooling-limited** passes (no `biome.json`), **credentials required** blocks with **SKIPPED** if not met.
    - **Automated checks** tied to the plan: exact commands (e.g. `bun run --cwd packages/stack test`), plus a **coverage / GAP** table when the plan claims test coverage that may span multiple files.
    - **Report template** at the end; heading uses the skill id (`## manual-test-<slug>`). If init applies, include **Init / install** line matching **Standard: Otavia CLI workspaces** (single path only).
 5. **Register** in **run-sanity-checks** `SKILL.md` → **Index** table: new row **Skill** + one-line **Focus** (plan filename + what the suite covers).

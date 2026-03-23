@@ -1,5 +1,8 @@
 node_modules/
 .otavia/
 .env
-.env.*
+.env.dev
+.env.test
+.env.deploy
 !.env.example
+!**/.env.example

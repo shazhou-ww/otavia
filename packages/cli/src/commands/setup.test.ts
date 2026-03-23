@@ -47,7 +47,9 @@ describe("runSetup", () => {
     const commandsDir = dirname(fileURLToPath(import.meta.url));
     const fixtureWs = join(commandsDir, "../../../stack/test-fixtures/minimal-workspace");
     const prev = process.env.OTAVIA_SETUP_SKIP_TOOLCHAIN;
+    const prevIdentity = process.env.OTAVIA_SETUP_SKIP_CLOUD_IDENTITY;
     process.env.OTAVIA_SETUP_SKIP_TOOLCHAIN = "1";
+    process.env.OTAVIA_SETUP_SKIP_CLOUD_IDENTITY = "1";
     try {
       const r = spawnSync("bun", ["install", "--no-cache"], {
         cwd: fixtureWs,
@@ -61,6 +63,8 @@ describe("runSetup", () => {
     } finally {
       if (prev === undefined) delete process.env.OTAVIA_SETUP_SKIP_TOOLCHAIN;
       else process.env.OTAVIA_SETUP_SKIP_TOOLCHAIN = prev;
+      if (prevIdentity === undefined) delete process.env.OTAVIA_SETUP_SKIP_CLOUD_IDENTITY;
+      else process.env.OTAVIA_SETUP_SKIP_CLOUD_IDENTITY = prevIdentity;
     }
   });
 });

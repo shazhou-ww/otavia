@@ -1,7 +1,11 @@
 import type { DeployInput, HostAdapter } from "@otavia/host-contract";
+import { OtaviaCredentialUserError } from "@otavia/host-contract";
+import { azureCredentialUserInstructions } from "./azure-credential-user-error.js";
 import type { CommandRunner } from "./command-runner.js";
 import { defaultAzureRunner } from "./command-runner.js";
 import { deployAzureStack } from "./deploy/deploy-stack.js";
+
+export { azureCredentialUserInstructions } from "./azure-credential-user-error.js";
 
 export type CreateAzureHostOptions = {
   run?: CommandRunner;
@@ -31,7 +35,7 @@ export function createAzureHost(options?: CreateAzureHostOptions): HostAdapter {
       const r = await run("az", ["account", "show"]);
       if (r.exitCode !== 0) {
         const detail = (r.stderr || r.stdout).trim() || `exit ${r.exitCode}`;
-        throw new Error(`Azure credentials check failed: ${detail}`);
+        throw new OtaviaCredentialUserError(azureCredentialUserInstructions(detail));
       }
     },
     async deployStack(input: DeployInput) {

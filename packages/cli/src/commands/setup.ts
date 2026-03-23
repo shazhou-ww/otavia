@@ -8,13 +8,14 @@ import { mergeProcessAndFileEnv } from "../env/merge-process-env.js";
 import { createHostAdapterForCloud } from "../host/create-host-adapter.js";
 import { findStackRoot } from "../resolve/find-stack-root.js";
 import { findWorkspaceRoot } from "../resolve/find-workspace-root.js";
+import { promptAndWriteCloudIdentity } from "../setup/prompt-cloud-identity.js";
 
 /**
- * If `.env.example` exists and `.env` does not, copy example → `.env` (legacy-style onboarding).
+ * If `stackRoot/.env.example` exists and `stackRoot/.env` does not, copy example → `.env`.
  */
-export async function copyEnvExampleIfMissing(workspaceRoot: string): Promise<boolean> {
-  const example = join(workspaceRoot, ".env.example");
-  const envPath = join(workspaceRoot, ".env");
+export async function copyEnvExampleIfMissing(stackRoot: string): Promise<boolean> {
+  const example = join(stackRoot, ".env.example");
+  const envPath = join(stackRoot, ".env");
   try {
     await access(example, constants.F_OK);
   } catch {
@@ -31,7 +32,9 @@ export async function copyEnvExampleIfMissing(workspaceRoot: string): Promise<bo
 
 /**
  * `setup`: env bootstrap, `buildStackModel` (spec §6.2 incl. param keys), host toolchain check.
- * Uses the same `.env` / `.env.dev` chain as `dev` for the workspace root (plan Task 18).
+ * Uses the same `.env` / `.env.dev` chain as `dev` under **stack root** (`stacks/<name>/`).
+ * When stdin is a TTY, prompts once to set `AWS_PROFILE` (AWS) or `AZURE_SUBSCRIPTION_ID` (Azure) in the stack `.env`.
+ * Skip with `OTAVIA_SETUP_SKIP_CLOUD_IDENTITY=1` or non-interactive stdin.
  */
 export async function runSetup(cwdInput: string = cwd()): Promise<void> {
   const workspaceRoot = findWorkspaceRoot(cwdInput);
@@ -42,15 +45,17 @@ export async function runSetup(cwdInput: string = cwd()): Promise<void> {
     );
   }
 
-  await copyEnvExampleIfMissing(workspaceRoot);
+  await copyEnvExampleIfMissing(stackRoot);
 
-  const fileEnv = loadEnvForCommand(workspaceRoot, "dev");
+  const fileEnv = loadEnvForCommand(stackRoot, "dev");
   const env = mergeProcessAndFileEnv(fileEnv);
 
   const model = buildStackModel({ stackRoot, workspaceRoot, env });
   for (const w of model.warnings) {
     console.warn(`[otavia] ${w}`);
   }
+
+  await promptAndWriteCloudIdentity(stackRoot, model.cloud.provider);
 
   const host = createHostAdapterForCloud(model.cloud);
   if (process.env.OTAVIA_SETUP_SKIP_TOOLCHAIN === "1") {

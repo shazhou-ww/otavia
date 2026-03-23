@@ -18,6 +18,8 @@ description: Use when verifying multicloud CLI in a fresh .checks/ workspace; al
 
 **Scope:** 每次在 `OTAVIA_REPO/.checks/manual-multicloud/<run-id>/` 新建 workspace；按序执行并留证；无证据不勾清单项。
 
+**`.env` 位置：** 多云 CLI 将 **`.env` / `.env.dev`** 放在 **栈目录**（如 **`stacks/main/.env`**），不是 workspace 根。
+
 **Init 唯一路径（本技能）：** 先 **`(cd "$OTAVIA_REPO/packages/cli" && bun link --global)`**，再 **`init "$WS" … --use-global-otavia`**；栈内脚本为 **`otavia …`**（PATH 上 global link 的 **bin `otavia`**）。后续子命令一律 **`CLI="$OTAVIA_REPO/packages/cli/src/cli.ts"`** + **`bun run "$CLI" <subcommand>`**，不依赖栈内是否安装 `@otavia/cli`。
 
 ---
@@ -74,11 +76,13 @@ cd "$WS/stacks/main"
 
 ```sh
 export OTAVIA_SETUP_SKIP_TOOLCHAIN=1
+export OTAVIA_SETUP_SKIP_CLOUD_IDENTITY=1
 bun run "$CLI" setup
 unset OTAVIA_SETUP_SKIP_TOOLCHAIN
+unset OTAVIA_SETUP_SKIP_CLOUD_IDENTITY
 ```
 
-**Verify：** exit `0`；记录 `buildStackModel` warnings。
+**Verify：** exit `0`；记录 `buildStackModel` warnings。（手工清单跳过交互选 profile / subscription；交互式 `setup` 可去掉 `SKIP_CLOUD_IDENTITY` 以写入 `.env`。）
 
 ### 5. `dev`（**必验**）
 

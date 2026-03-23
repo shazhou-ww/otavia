@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["src/index.ts", "src/types.ts"]
+  "include": ["src/index.ts", "src/types.ts", "src/otavia-credential-user-error.ts"]
 }

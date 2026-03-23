@@ -1,7 +1,14 @@
-import type { DeployInput, HostAdapter } from "@otavia/host-contract";
+import {
+  OtaviaCredentialUserError,
+  type DeployInput,
+  type HostAdapter,
+} from "@otavia/host-contract";
+import { awsCredentialUserInstructions } from "./aws-credential-user-error.js";
 import type { CommandRunner } from "./command-runner.js";
 import { defaultAwsRunner } from "./command-runner.js";
 import { deployAwsStack } from "./deploy/deploy-stack.js";
+
+export { awsCredentialUserInstructions } from "./aws-credential-user-error.js";
 
 export type CreateAwsHostOptions = {
   run?: CommandRunner;
@@ -26,7 +33,7 @@ export function createAwsHost(options?: CreateAwsHostOptions): HostAdapter {
       const r = await run("aws", ["sts", "get-caller-identity"]);
       if (r.exitCode !== 0) {
         const detail = (r.stderr || r.stdout).trim() || `exit ${r.exitCode}`;
-        throw new Error(`AWS credentials check failed: ${detail}`);
+        throw new OtaviaCredentialUserError(awsCredentialUserInstructions(detail));
       }
     },
     async deployStack(input: DeployInput) {

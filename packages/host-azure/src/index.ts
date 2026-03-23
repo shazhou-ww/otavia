@@ -1,4 +1,5 @@
 export {
+  azureCredentialUserInstructions,
   createAzureHost,
   type CreateAzureHostOptions,
 } from "./azure-host.js";

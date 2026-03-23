@@ -24,12 +24,16 @@ describe("runInit", () => {
         await readFile(join(dir, "stacks", "main", "package.json"), "utf8")
       ) as { scripts?: Record<string, string>; devDependencies?: Record<string, string> };
       expect(stackPkg.scripts?.dev).toBe("bunx @otavia/cli dev");
+      expect(stackPkg.scripts?.cloud).toBe("bunx @otavia/cli cloud login");
+      expect(stackPkg.scripts?.["cloud:login"]).toBe("bunx @otavia/cli cloud login");
+      expect(stackPkg.scripts?.["cloud:logout"]).toBe("bunx @otavia/cli cloud logout");
       expect(stackPkg.scripts?.test).toBe("bun test test/unit test/e2e");
       expect(stackPkg.scripts?.["test:all"]).toBe("bunx @otavia/cli test");
       expect(stackPkg.devDependencies?.["@otavia/cli"]).toBe("0.0.1");
       expect(stackPkg.devDependencies?.typescript).toBe("^5.8.3");
       await readFile(join(dir, "cells", "hello", "test", "unit", "handler.test.ts"), "utf8");
       await readFile(join(dir, "cells", "hello", "cell.yaml"), "utf8");
+      await readFile(join(dir, "stacks", "main", ".env.example"), "utf8");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -44,6 +48,8 @@ describe("runInit", () => {
       ) as { scripts?: Record<string, string>; devDependencies?: Record<string, string> };
       expect(stackPkg.devDependencies?.["@otavia/cli"]).toBeUndefined();
       expect(stackPkg.scripts?.dev).toBe("otavia dev");
+      expect(stackPkg.scripts?.cloud).toBe("otavia cloud login");
+      expect(stackPkg.scripts?.["cloud:logout"]).toBe("otavia cloud logout");
       expect(stackPkg.scripts?.["test:all"]).toBe("otavia test");
       expect(stackPkg.devDependencies?.typescript).toBe("^5.8.3");
     } finally {

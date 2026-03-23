@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { OtaviaCredentialUserError } from "@otavia/host-contract";
 import { createAzureHost } from "./azure-host.js";
 
 describe("createAzureHost", () => {
@@ -52,6 +53,24 @@ describe("createAzureHost", () => {
     });
     await host.checkCredentials();
     expect(calls).toEqual([["az", "account", "show"]]);
+  });
+
+  test("checkCredentials throws OtaviaCredentialUserError with az login hint", async () => {
+    const host = createAzureHost({
+      run: async () => ({
+        exitCode: 1,
+        stdout: "",
+        stderr: "Please run 'az login' to setup account.",
+      }),
+    });
+    let err: unknown;
+    try {
+      await host.checkCredentials();
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(OtaviaCredentialUserError);
+    expect((err as Error).message).toContain("az login");
   });
 });
 

@@ -39,7 +39,7 @@ export function runTestCommand(cwdInput: string = cwd()): void {
     console.error("Run `otavia test` from inside an Otavia workspace.");
     process.exit(1);
   }
-  const fileEnv = loadEnvForCommand(workspaceRoot, "test");
+  const fileEnv = loadEnvForCommand(stackRoot, "test");
   const merged = mergeProcessAndFileEnv(fileEnv);
   let model;
   try {

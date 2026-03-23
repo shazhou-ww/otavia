@@ -9,6 +9,7 @@
 与 legacy 包 **`@otavia/cli-legacy`** 并存期间，推荐使用 **`@otavia/cli`** 做 **AWS / Azure** 双云栈（`otavia.yaml` 顶层 **`cloud`** 为判别联合：`provider: aws` 配 **`region`**，或 `provider: azure` 配 **`location`**）。
 
 - **入口**：仓库内 `bun run cli:multicloud` 或 `bun run --cwd packages/cli src/cli.ts`；安装到 path 后可用 **`otavia`**（见 `packages/cli/package.json` 的 `bin`）。
+- **栈目录 `.env`**：`setup` 在 **`stacks/<name>/`**（如 **`stacks/main`**）从 **`.env.example`** 生成 **`.env`**；**`dev` / `deploy` / `test` / `cloud`** 均从**该栈目录**加载 `.env`、`.env.dev` 等。**`otavia cloud login`** / **`otavia cloud logout`** 按 **`otavia.yaml` 的 `cloud.provider`** 执行 **`aws sso login|logout`** 或 **`az login|logout`**，并把合并后的环境（含 **`AWS_PROFILE`**、**`AZURE_SUBSCRIPTION_ID`**、**`AZURE_CONFIG_DIR`**）传给子进程。栈 **`package.json`** 提供 **`bun run cloud`**（等同 login）、**`bun run cloud:login`**、**`bun run cloud:logout`**。
 - **常用命令**：`init`、`setup`、`dev`、`deploy`、`test` / `lint` / `typecheck`（后三者按栈与 cell 包 **fail-fast** 遍历）。脚手架 **`stacks/main`**：默认脚本 **`bunx @otavia/cli …`**（须与 npm **`name: @otavia/cli`** 一致；勿写 **`bunx otavia`**），并声明 **`devDependencies.@otavia/cli`**；**`init --use-global-otavia`** 则**省略**该 devDependency（避免 **registry 尚无包时 `bun install` 失败**），脚本改为 **`otavia …`**，需本机 **`bun link --global`**（在 `packages/cli`）或全局安装后的 **`otavia`** 在 PATH 上。
 - **AWS**：需安装 **AWS CLI**；**`deploy` / `setup`** 会校验凭证；**`dev`** 默认仅本地网关/Vite，**不**校验云凭证。若要在启动 dev 前确认已登录，可设 **`OTAVIA_DEV_CHECK_CREDENTIALS=1`**。
 - **Azure**：需安装 **Azure CLI** 与 **Bicep**（`az bicep version` 或独立 `bicep`）；`deploy` 需环境变量 **`OTAVIA_AZURE_RESOURCE_GROUP`**。

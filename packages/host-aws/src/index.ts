@@ -1,4 +1,5 @@
 export {
+  awsCredentialUserInstructions,
   createAwsHost,
   type CreateAwsHostOptions,
 } from "./aws-host.js";

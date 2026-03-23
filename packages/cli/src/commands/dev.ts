@@ -1,3 +1,4 @@
+import { OtaviaCredentialUserError } from "@otavia/host-contract";
 import { cwd } from "node:process";
 import { buildStackModel } from "@otavia/stack";
 import { runDevGateway } from "../dev/gateway.js";
@@ -31,7 +32,7 @@ export async function runDev(cwdInput: string = cwd()): Promise<void> {
     process.exit(1);
   }
 
-  const fileEnv = loadEnvForCommand(workspaceRoot, "dev");
+  const fileEnv = loadEnvForCommand(stackRoot, "dev");
   const mergedEnv = mergeProcessAndFileEnv(fileEnv);
   let model;
   try {
@@ -51,12 +52,11 @@ export async function runDev(cwdInput: string = cwd()): Promise<void> {
     try {
       await host.checkCredentials();
     } catch (e) {
-      console.error(e instanceof Error ? e.message : e);
-      if (model.providerKind === "aws") {
-        console.error("Configure AWS credentials (e.g. aws configure) or use a profile with valid keys.");
-      } else {
-        console.error("Run `az login` and ensure a subscription is selected.");
+      if (e instanceof OtaviaCredentialUserError) {
+        console.error(e.message.trimEnd());
+        process.exit(1);
       }
+      console.error(e instanceof Error ? e.message : e);
       process.exit(1);
     }
   }
