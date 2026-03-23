@@ -47,6 +47,7 @@ describe("initCommand", () => {
         devDependencies?: Record<string, string>;
       };
       expect(rootPkg.devDependencies?.react).toBeUndefined();
+      expect(rootPkg.devDependencies?.["@otavia/cli-legacy"]).toMatch(/^\^/);
       expect(rootPkg.workspaces).toEqual(["packages/*", "cells/*", "apps/*"]);
       expect(rootPkg.scripts?.dev).toBe("bun run --cwd apps/main dev");
       expect(rootPkg.scripts?.aws).toBe("bun run --cwd apps/main aws");

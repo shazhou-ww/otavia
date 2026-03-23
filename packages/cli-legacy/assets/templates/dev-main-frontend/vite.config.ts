@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { mergeConfig } from "vite";
-import { createMainFrontendViteConfig } from "otavia/dev/main-frontend-runtime/vite-config";
+import { createMainFrontendViteConfig } from "@otavia/cli-legacy/dev/main-frontend-runtime/vite-config";
 
 const backendPort = process.env.GATEWAY_BACKEND_PORT;
 const vitePort = Number.parseInt(process.env.VITE_PORT ?? "", 10);

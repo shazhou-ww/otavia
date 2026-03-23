@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * Directory containing this package's `package.json` (`name: "otavia"`).
+ * Directory containing this package's `package.json` (`name: "@otavia/cli-legacy"`).
  * Works for `bun src/cli.ts`, published installs, and `file:` links.
  */
 export function getOtaviaPackageRoot(): string {
@@ -13,7 +13,7 @@ export function getOtaviaPackageRoot(): string {
     if (existsSync(pkgPath)) {
       try {
         const pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as { name?: string };
-        if (pkg.name === "otavia") return dir;
+        if (pkg.name === "@otavia/cli-legacy") return dir;
       } catch {
         /* keep walking */
       }

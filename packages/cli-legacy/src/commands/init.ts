@@ -130,7 +130,7 @@ export function initCommand(
       aws: "bun run --cwd apps/main aws",
     },
     devDependencies: {
-      otavia: `^${otaviaVersion}`,
+      "@otavia/cli-legacy": `^${otaviaVersion}`,
       typescript: "^5.8.3",
       "@types/bun": "^1.3.11",
       vite: "^7.x",
@@ -138,7 +138,7 @@ export function initCommand(
     },
   });
 
-  // Scripts only: resolve `otavia` from the repo root (avoid a nested apps/main/node_modules/otavia pin).
+  // Scripts only: resolve `@otavia/cli-legacy` from the repo root (avoid a nested apps/main/node_modules pin).
   writeJson(resolve(root, APPS_MAIN, "package.json"), {
     name: mainPkg,
     private: true,

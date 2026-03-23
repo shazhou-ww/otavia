@@ -246,9 +246,11 @@ export async function testE2eCommand(rootDir: string): Promise<void> {
     if (hasTables) gatewayEnv.DYNAMODB_ENDPOINT = `http://localhost:${ports.dynamodb}`;
     if (hasBuckets) gatewayEnv.S3_ENDPOINT = `http://localhost:${ports.minio}`;
 
-    const cliPath = fs.existsSync(path.join(monorepoRoot, "apps", "otavia", "src", "cli.ts"))
-      ? path.join(monorepoRoot, "apps", "otavia", "src", "cli.ts")
-      : path.join(monorepoRoot, "..", "otavia", "src", "cli.ts");
+    const cliPath = fs.existsSync(path.join(monorepoRoot, "packages", "cli-legacy", "src", "cli.ts"))
+      ? path.join(monorepoRoot, "packages", "cli-legacy", "src", "cli.ts")
+      : fs.existsSync(path.join(monorepoRoot, "apps", "otavia", "src", "cli.ts"))
+        ? path.join(monorepoRoot, "apps", "otavia", "src", "cli.ts")
+        : path.join(monorepoRoot, "..", "otavia", "src", "cli.ts");
     gatewayProc = Bun.spawn([bunExecutable(), "run", cliPath, "dev"], {
       cwd: monorepoRoot,
       env: gatewayEnv,

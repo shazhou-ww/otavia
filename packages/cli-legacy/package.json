@@ -1,0 +1,45 @@
+{
+  "name": "@otavia/cli-legacy",
+  "version": "0.1.1",
+  "description": "CLI for Otavia stack (deploy, dev, local tooling)",
+  "type": "module",
+  "exports": {
+    "./dev/main-frontend-runtime/main-entry": "./dist/dev/main-frontend-runtime/main-entry.js",
+    "./dev/main-frontend-runtime/vite-config": "./dist/dev/main-frontend-runtime/vite-config.js"
+  },
+  "files": [
+    "assets",
+    "dist",
+    "src",
+    "package.json"
+  ],
+  "bin": {
+    "otavia": "src/cli.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src/",
+    "build:runtime": "bun run scripts/build-runtime-entries.ts",
+    "prepack": "bun run build:runtime",
+    "prepare": "bun run build:runtime",
+    "smoke:init-dev": "bun run scripts/smoke-init-dev.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.x",
+    "@aws-sdk/client-s3": "^3.x",
+    "commander": "^12.1.0",
+    "concurrently": "^9.2.1",
+    "esbuild": "^0.24.0",
+    "hono": "^4.6.0",
+    "yaml": "^2.5.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.11",
+    "@types/node": "^25.5.0",
+    "@vitejs/plugin-react": "^4.x",
+    "typescript": "^5.8.3",
+    "vite": "^7.x"
+  }
+}

@@ -9,8 +9,10 @@ import { fileURLToPath } from "node:url";
 import { initCommand } from "../src/commands/init";
 import { bunExecutable } from "../src/utils/bun-executable";
 
-/** Repo root (parent of scripts/). */
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+/** Otavia git repo root (this script lives under packages/cli-legacy/scripts/). */
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+/** @otavia/cli-legacy package root */
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 function logSection(title: string): void {
   console.log(`\n--- ${title} ---`);
@@ -41,7 +43,7 @@ function treeSummary(root: string, rel = "", depth = 0): void {
 async function main(): Promise<void> {
   logSection("build:runtime (dist JS for package exports)");
   const buildRt = Bun.spawnSync([bunExecutable(), "run", "build:runtime"], {
-    cwd: repoRoot,
+    cwd: packageRoot,
     stderr: "inherit",
     stdout: "inherit",
   });
@@ -79,7 +81,7 @@ async function main(): Promise<void> {
 
     logSection("point otavia devDependency at this repo");
     rootPkg.devDependencies = rootPkg.devDependencies ?? {};
-    rootPkg.devDependencies.otavia = `file:${repoRoot}`;
+    rootPkg.devDependencies["@otavia/cli-legacy"] = `file:${repoRoot}/packages/cli-legacy`;
     writeFileSync(join(root, "package.json"), `${JSON.stringify(rootPkg, null, 2)}\n`, "utf-8");
 
     logSection("bun install --no-cache");

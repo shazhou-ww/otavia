@@ -12,18 +12,18 @@
 
 ## 安装 CLI
 
-包发布到注册表后，使用 Bun 全局安装即可（`package.json` 的 `bin` 为 `otavia`）：
+本仓库为 **monorepo**：CLI 实现在 `packages/cli-legacy`（npm 名 `@otavia/cli-legacy`，可执行命令仍为 `otavia`）。发布到注册表后全局安装：
 
 ```bash
-bun add -g otavia
+bun add -g @otavia/cli-legacy
 ```
 
 从本仓库开发时，在仓库根目录执行：
 
 ```bash
-bun install
-bun run src/cli.ts -- --help
-# 或 bun link 后直接使用 otavia
+bun install --no-cache
+bun run --cwd packages/cli-legacy src/cli.ts -- --help
+# 或在 packages/cli-legacy 下 bun link，然后直接使用 otavia
 ```
 
 ## 快速开始（空目录脚手架）
@@ -115,9 +115,11 @@ otavia cell create <mount>
 ## 开发与发布本包
 
 ```bash
-bun test
+bun run test
 bun run typecheck
-bun run build:runtime   # 预构建 dev 用的 Vite 运行时入口（prepack/prepare 会跑）
+bun run build:runtime   # 预构建 dev 用的 Vite 运行时入口（prepack/prepare 在包内会跑）
 bun run smoke:init-dev  # 脚手架 + 短暂 dev 冒烟（需本机环境满足脚本假设）
 ```
+
+以上命令在 **仓库根** 执行时会转发到 `packages/cli-legacy`。
 

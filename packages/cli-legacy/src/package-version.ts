@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 let cached: string | undefined;
 
-/** Version from the otavia package's package.json (same as published npm version when installed from registry). */
+/** Version from `@otavia/cli-legacy` package.json (same as published npm version when installed from registry). */
 export function getOtaviaPackageVersion(): string {
   if (cached != null) return cached;
   try {
