@@ -115,22 +115,22 @@
 | 标签 | `otavia.yaml` | `cell.yaml` |
 |------|---------------|-------------|
 | `!Env` / `!Secret` | **仅** `params` 树内 | **禁止** |
-| `!Param` | **`params` 树内允许**（含**顶层** `params`；与 legacy 不同，**顶层允许 `!Param`**） | **允许**于正文（不得出现在 `params` 声明列表的「键名」语义之外；即声明仍用字符串数组） |
+| `!Param` | **顶层 `params`**：允许树内互引（须无环）；**`cells[mount].params`**：**仅**允许 `!Param` 引用**顶层 `params` 的键**（与 legacy 不同，**顶层允许 `!Param`**） | **允许**于正文（不得出现在 `params` 声明列表的「键名」语义之外；即声明仍用字符串数组） |
 
-**`cells[mount].params`（在 `otavia.yaml` 内）**：可含 `!Param`；引用规则与顶层 `params` 一并见 §6.2（含**树内引用**与**回退环境**）。
+**`cells[mount].params`（在 `otavia.yaml` 内）**：可含 `!Param`，但 **`!Param` 只能引用顶层 `params` 中的键**（取该键在 **步骤 2** 已解析完毕的值）；**禁止**引用本 mount 下 `cells[mount].params` 的兄弟键、**禁止**引用其它 `cells[other].params`、**禁止**在无对应顶层键时回退为「仅环境中有名」的隐式来源（环境只能通过 **顶层 `params` 里的 `!Env`/`!Secret`/字面量/合法 `!Param` 链**间接进入 cell 侧）。
 
 ### 6.2 解析顺序（规范层要求）
 
 1. 按 **当前子命令**加载环境文件（§6.3），形成合并后的进程环境。
-2. 解析 **`otavia.yaml` 中与 param 相关的配置**（**顶层 `params`** 与各 **`cells[mount].params`**）：
-   - **`!Param` 允许引用同文件内其它 param 键**（「同层」指**同一 `params` 对象树内**的兄弟/嵌套键；**跨** `cells[mount].params` 与顶层 `params` 的引用规则在实现计划中**给出唯一算法**，须同样纳入依赖图）。
-   - **树内引用**：若 `!Param` 的目标名在**当前规则下**对应另一 param 键，则形成 **依赖边**；**须构建依赖图并检测环路，有环则报错**；无环则 **拓扑排序** 后求值。
-   - **树外回退**：若目标名**无树内对应键**，则 **`!Param` 从步骤 1 之后的进程环境**按同名取值（键名与 tag 形式与 legacy 对齐）。
-   - **`!Env` / `!Secret`**：仅在允许位置出现；与 `!Param` 混排时，与树内引用一并服从 **拓扑顺序**（依赖已解析键、`!Env`/`!Secret`、字面量及环境回退）。
-3. 合并各 cell 在 `otavia.yaml` 中的 **param 供给**，并校验 **`cell.yaml` 的 `params` 声明**均已得到满足。
-4. 对每个 cell：在 **合并到该 cell 的最终 param 映射**上，解析 **`cell.yaml` 正文中的 `!Param`**，得到 **最终 cell 配置**（**仅**能引用该 `cell.yaml` **`params` 已声明**的键）。
+2. **仅解析顶层 `params`**：
+   - **`!Param` 允许引用同一顶层 `params` 对象树内的其它键**（兄弟或嵌套键）；**须针对该树内 `!Param` 边建依赖图、检测环路，有环则报错**；无环则 **拓扑排序** 后求值。
+   - **树外回退**（**仅适用于顶层 `params` 内的 `!Param`**）：若目标名在**顶层 `params` 树内**无对应键，则 **`!Param` 从步骤 1 之后的进程环境**按同名取值（键名与 tag 形式与 legacy 对齐）。
+   - **`!Env` / `!Secret`**：仅在允许位置出现；与顶层 `!Param` 混排时服从同一 **拓扑顺序**。
+3. **解析各 `cells[mount].params`**：其中出现的 **`!Param` 仅能引用步骤 2 中顶层 `params` 已存在的键名**，代入 **步骤 2 的解析结果**；不得再引入指向 `cells[*.params]` 的依赖边。
+4. 合并 **步骤 2 + 3** 对每一 cell 的 **param 供给**，并校验 **`cell.yaml` 的 `params` 声明**均已得到满足。
+5. 对每个 cell：在 **合并到该 cell 的最终 param 映射**上，解析 **`cell.yaml` 正文中的 `!Param`**，得到 **最终 cell 配置**（**仅**能引用该 `cell.yaml` **`params` 已声明**的键）。
 
-**循环依赖**：**仅针对 `otavia.yaml` 内 `!Param` 的树内引用**做强制环路检测；**成环或无法拓扑排序则报错**（不作为 warning）。
+**循环依赖**：**强制环路检测**仅针对 **顶层 `params` 内部**的 `!Param` 树内引用；**成环或无法拓扑排序则报错**（不作为 warning）。`cells[mount].params` 因 **不得树内互引**，**不参与**该环检测图。
 
 ### 6.3 环境文件与命令
 
@@ -194,7 +194,7 @@
 ## 10. 与 legacy 的已知差异（摘要）
 
 - 布局与包名：**终端项目**使用 **`stacks/`**；CLI 包为 **`@otavia/cli`**；**双云**与 **`host-*` / `runtime-*` 拆分**。
-- **顶层 `otavia.yaml` `params` 允许 `!Param`**（legacy 禁止）；且 **`!Param` 可引用同文件内其它 param 键**，**须做环路检测**（legacy 若未统一建图，以实现为准）。
+- **顶层 `otavia.yaml` `params` 允许 `!Param`**（legacy 禁止）；且 **顶层 `params` 内 `!Param` 可互相引用**，**须做环路检测**（legacy 若未统一建图，以实现为准）。**`cells[mount].params` 中的 `!Param` 只能引用顶层 `params`**，不得引用其它 cell 条目或本条目内兄弟键。
 - **`cell.yaml` 正文允许 `!Param`**，且受 **`params` 声明**约束；仍 **禁止 `!Env`/`!Secret`**。
 - Cell 定位：**仅**通过 **stack 包依赖 + `node_modules` 解析**，不扫 `cells/` 目录树。
 - **未知 YAML 键**：**warning**（legacy 可能更严，以实现为准）。
