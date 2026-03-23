@@ -6,6 +6,7 @@
   "workspaces": ["packages/*"],
   "scripts": {
     "dev": "bun run --cwd packages/cli-legacy dev",
+    "cli:multicloud": "bun run --cwd packages/cli dev",
     "typecheck": "bun run --cwd packages/cli-legacy typecheck",
     "test": "bun run --cwd packages/cli-legacy test",
     "build:runtime": "bun run --cwd packages/cli-legacy build:runtime",

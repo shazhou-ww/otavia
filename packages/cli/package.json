@@ -1,0 +1,18 @@
+{
+  "name": "@otavia/cli",
+  "version": "0.0.1",
+  "description": "Otavia multicloud CLI (scaffold)",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.11",
+    "@types/node": "^25.5.0",
+    "typescript": "^5.8.3"
+  }
+}
