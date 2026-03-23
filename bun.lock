@@ -9,6 +9,10 @@
       "name": "@otavia/cli",
       "version": "0.0.1",
       "dependencies": {
+        "@otavia/host-aws": "workspace:*",
+        "@otavia/host-azure": "workspace:*",
+        "@otavia/host-contract": "workspace:*",
+        "@otavia/stack": "workspace:*",
         "commander": "^12.1.0",
       },
       "devDependencies": {

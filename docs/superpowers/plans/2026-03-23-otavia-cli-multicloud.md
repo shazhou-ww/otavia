@@ -242,9 +242,9 @@
 - Create: `packages/cli/src/host/create-host-adapter.ts`
 - Modify: `packages/cli/src/cli.ts`
 
-- [ ] **Step 1:** 读 `StackModel` 中 `provider` 判别 `aws` | `azure`（具体判别键在实现中固定，如 `provider.type` 或 `'region' in provider` — **须在 `types.ts` 单一真相**）。
-- [ ] **Step 2:** 返回对应 `HostAdapter`。
-- [ ] **Step 3:** Commit：`feat(cli): host adapter factory`
+- [x] **Step 1:** 读 `StackModel` 中 `provider` 判别 `aws` | `azure`（具体判别键在实现中固定，如 `provider.type` 或 `'region' in provider` — **须在 `types.ts` 单一真相**）。
+- [x] **Step 2:** 返回对应 `HostAdapter`。
+- [x] **Step 3:** Commit：`feat(cli): host adapter factory`
 
 ---
 
