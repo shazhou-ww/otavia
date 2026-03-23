@@ -191,9 +191,9 @@
 - Create: `packages/host-aws/src/aws-host.ts`
 - Create: `packages/host-aws/src/aws-host.test.ts`（mock `spawn` 或仅测「命令字符串构造」，避免真 AWS）
 
-- [ ] **Step 1:** `checkToolchain`：`aws` 可执行。
-- [ ] **Step 2:** `checkCredentials`：`aws sts get-caller-identity`（可设环境变量跳过测试）。
-- [ ] **Step 3:** Commit：`feat(host-aws): toolchain and credentials checks`
+- [x] **Step 1:** `checkToolchain`：`aws` 可执行。
+- [x] **Step 2:** `checkCredentials`：`aws sts get-caller-identity`（可设环境变量跳过测试）。
+- [x] **Step 3:** Commit：`feat(host-aws): toolchain and credentials checks`
 
 ---
 
@@ -203,11 +203,11 @@
 - Create: `packages/host-aws/src/template/minimal-http-lambda.ts`（或 YAML 字符串模板）
 - Create: `packages/host-aws/src/deploy/write-and-deploy.ts`
 
-- [ ] **Step 1:** 写入 `stackRoot/.otavia/aws/template.yaml`（gitignore 由模板项目负责；框架内 e2e 用临时目录）。
-- [ ] **Step 2:** `deployStack` 的 **`DeployInput`** 携带 **`StackModel.environments` / `StackModel.secrets`**：MVP 至少将 **非空** `environments` 映射为 Lambda/函数应用的环境变量；**secrets** 映射为 **SSM Parameter Store 引用**或模板参数（若某键暂无云绑定，文档写明限制并 **warn**）。
-- [ ] **Step 3:** `aws cloudformation deploy` 或等价；参数化 `StackName`、`region`（来自 `provider.region`）。
-- [ ] **Step 4:** 文档或脚本说明：开发者需自有 AWS 账户验证（CI 可 mark optional）。
-- [ ] **Step 5:** Commit：`feat(host-aws): minimal CFN deploy`
+- [x] **Step 1:** 写入 `stackRoot/.otavia/aws/template.yaml`（gitignore 由模板项目负责；框架内 e2e 用临时目录）。
+- [x] **Step 2:** `deployStack` 的 **`DeployInput`** 携带 **`StackModel.environments` / `StackModel.secrets`**：MVP 至少将 **非空** `environments` 映射为 Lambda/函数应用的环境变量；**secrets** 映射为 **SSM Parameter Store 引用**或模板参数（若某键暂无云绑定，文档写明限制并 **warn**）。
+- [x] **Step 3:** `aws cloudformation deploy` 或等价；参数化 `StackName`、`region`（来自 `provider.region`）。
+- [x] **Step 4:** 文档或脚本说明：开发者需自有 AWS 账户验证（CI 可 mark optional）。
+- [x] **Step 5:** Commit：`feat(host-aws): minimal CFN deploy`
 
 ---
 
