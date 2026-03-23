@@ -1,2 +1,1 @@
-/** @otavia/host-contract — scaffold placeholder */
-export {};
+export type { DeployInput, HostAdapter, ProviderId } from "./types.ts";

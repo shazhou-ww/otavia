@@ -8,7 +8,7 @@
     "rootDir": "src",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["bun", "node"]
+    "types": []
   },
-  "include": ["src/**/*"]
+  "include": ["src/index.ts", "src/types.ts"]
 }
