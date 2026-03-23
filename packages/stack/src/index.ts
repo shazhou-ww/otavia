@@ -1,4 +1,14 @@
 export {
+  flattenVariablePaths,
+  topologicalVariableOrder,
+} from "./variables/graph.js";
+export {
+  resolveTopVariables,
+  type ResolveTopVariablesResult,
+  type VariableEnvBinding,
+  type VariableSecretBinding,
+} from "./variables/resolve-top-variables.js";
+export {
   parseOtaviaYaml,
   providerKind,
   type OtaviaCellsListItem,

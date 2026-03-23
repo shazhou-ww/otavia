@@ -46,10 +46,10 @@
 - Create: `packages/cli/package.json`, `tsconfig.json`, `src/cli.ts`（空 commander）
 - Modify: 根 `package.json` scripts（可选）指向新 CLI 的本地运行命令
 
-- [ ] **Step 1:** 为每个包设置 `"name": "@otavia/..."`、`"type": "module"`、对齐 `cli-legacy` 的 `typescript`/`@types/bun` 版本。
-- [ ] **Step 2:** `bun install --no-cache` 于仓库根，确认无 workspace 冲突。
-- [ ] **Step 3:** `bun run --cwd packages/cli typecheck`（或逐包）通过空项目。
-- [ ] **Step 4:** Commit：`chore: scaffold @otavia multicloud packages`
+- [x] **Step 1:** 为每个包设置 `"name": "@otavia/..."`、`"type": "module"`、对齐 `cli-legacy` 的 `typescript`/`@types/bun` 版本。
+- [x] **Step 2:** `bun install --no-cache` 于仓库根，确认无 workspace 冲突。
+- [x] **Step 3:** `bun run --cwd packages/cli typecheck`（或逐包）通过空项目。
+- [x] **Step 4:** Commit：`chore: scaffold @otavia multicloud packages`
 
 ---
 
@@ -59,9 +59,9 @@
 - Create: `packages/host-contract/src/types.ts` — `ProviderId`、`HostAdapter`、`DeployInput`（含 Stack 摘要或序列化句柄）
 - Modify: `packages/host-contract/src/index.ts` 导出
 
-- [ ] **Step 1:** 写测试 `packages/host-contract/src/types.test.ts`：`satisfies HostAdapter` 的 mock 对象可赋值（编译期 + 运行时空测）。
-- [ ] **Step 2:** 定义方法：`checkToolchain(): Promise<void>`、`checkCredentials(): Promise<void>`、`deployStack(input: DeployInput): Promise<void>`（名称可微调，但须在 plan 与代码一致）。
-- [ ] **Step 3:** Commit：`feat(host-contract): define HostAdapter`
+- [x] **Step 1:** 写测试 `packages/host-contract/src/types.test.ts`：`satisfies HostAdapter` 的 mock 对象可赋值（编译期 + 运行时空测）。
+- [x] **Step 2:** 定义方法：`checkToolchain(): Promise<void>`、`checkCredentials(): Promise<void>`、`deployStack(input: DeployInput): Promise<void>`（名称可微调，但须在 plan 与代码一致）。
+- [x] **Step 3:** Commit：`feat(host-contract): define HostAdapter`
 
 ---
 
@@ -71,9 +71,9 @@
 - Create: `packages/cli/src/env/load-env-for-command.ts`
 - Create: `packages/cli/src/env/load-env-for-command.test.ts`
 
-- [ ] **Step 1:** 实现函数 `loadEnvForCommand(stackRoot: string, command: 'dev' | 'test' | 'deploy'): Record<string, string>`：按 spec **先 `.env` 再 `.env.{dev|test|deploy}`**，后者覆盖；文件不存在则跳过。
-- [ ] **Step 2:** 写测试：在 `tmp` 目录写入假文件，断言合并与覆盖顺序。
-- [ ] **Step 3:** Commit：`feat(cli): load env chains per command`
+- [x] **Step 1:** 实现函数 `loadEnvForCommand(stackRoot: string, command: 'dev' | 'test' | 'deploy'): Record<string, string>`：按 spec **先 `.env` 再 `.env.{dev|test|deploy}`**，后者覆盖；文件不存在则跳过。
+- [x] **Step 2:** 写测试：在 `tmp` 目录写入假文件，断言合并与覆盖顺序。
+- [x] **Step 3:** Commit：`feat(cli): load env chains per command`
 
 ---
 
@@ -85,10 +85,10 @@
 - Create: `packages/cli/src/resolve/find-workspace-root.test.ts`
 - Create: `packages/cli/src/resolve/find-stack-root.test.ts`
 
-- [ ] **Step 1:** `findWorkspaceRoot(cwd)`：向父目录查找，**第一个**含 `package.json` 且 JSON 内有 **`workspaces`** 字段的目录。
-- [ ] **Step 2:** `findStackRoot(cwd)`：从 cwd 向父直到 workspace 根，路径上**第一个**含 **`otavia.yaml`** 的目录为 stack 根；若 cwd 在 `stacks/foo` 下则找到该目录。
-- [ ] **Step 3:** 测试覆盖：临时目录下伪造目录树。
-- [ ] **Step 4:** Commit：`feat(cli): resolve workspace and stack roots`
+- [x] **Step 1:** `findWorkspaceRoot(cwd)`：向父目录查找，**第一个**含 `package.json` 且 JSON 内有 **`workspaces`** 字段的目录。
+- [x] **Step 2:** `findStackRoot(cwd)`：从 cwd 向父直到 workspace 根，路径上**第一个**含 **`otavia.yaml`** 的目录为 stack 根；若 cwd 在 `stacks/foo` 下则找到该目录。
+- [x] **Step 3:** 测试覆盖：临时目录下伪造目录树。
+- [x] **Step 4:** Commit：`feat(cli): resolve workspace and stack roots`
 
 ---
 
@@ -99,9 +99,9 @@
 - Create: `packages/stack/src/yaml/tags.ts` — `!Env`、`!Secret`、`!Var`、`!Param` 节点类型（非解析，仅 AST/中间表示）
 - Create: `packages/stack/src/yaml/load-yaml.test.ts`
 
-- [ ] **Step 1:** 使用与 legacy 相同或兼容的 YAML 库注册 tag，将 tag 解析为**显式对象**（如 `{ kind: 'env', key: 'FOO' }`），避免与纯字符串混淆。
-- [ ] **Step 2:** 测试：含 `!Var` / `!Env` 的小字符串可被 round-trip 识别。
-- [ ] **Step 3:** Commit：`feat(stack): yaml tags for Var/Param/Env/Secret`
+- [x] **Step 1:** 使用与 legacy 相同或兼容的 YAML 库注册 tag，将 tag 解析为**显式对象**（如 `{ kind: 'env', key: 'FOO' }`），避免与纯字符串混淆。
+- [x] **Step 2:** 测试：含 `!Var` / `!Env` 的小字符串可被 round-trip 识别。
+- [x] **Step 3:** Commit：`feat(stack): yaml tags for Var/Param/Env/Secret`
 
 ---
 
@@ -111,9 +111,9 @@
 - Create: `packages/stack/src/otavia/parse-otavia-yaml.ts`
 - Create: `packages/stack/src/otavia/parse-otavia-yaml.test.ts`
 
-- [ ] **Step 1:** 解析 `name`、`provider`（对象；**云判别**与 spec §5.1 一致：AWS 用 **`region`**，Azure 用 **`location`**，实现中单一函数 `providerKind(provider)` 返回 `'aws'|'azure'`，歧义或两键皆无则 **throw**）、`variables`、`cells`（值为包名字符串或 `{ package, params? }` 扩展可后续加）、**拒绝**任意位置出现 `!Param`（抛错）。**整文件 AST/tag 校验（与 spec §6.1、§6.4 对齐）**：`**!Env` / `!Secret` / `!Var` 仅允许出现在**顶层 **`variables` 子树**以及 **`cells[mount].params` 的值**中；在 `name`、`provider`、`cells` 键名映射（非 params 值）等其它位置出现上述 tag → **throw**。
-- [ ] **Step 2:** **未知顶层键**收集为 `warnings: string[]` 返回，不抛错。
-- [ ] **Step 3:** Commit：`feat(stack): parse otavia.yaml shape`
+- [x] **Step 1:** 解析 `name`、`provider`（对象；**云判别**与 spec §5.1 一致：AWS 用 **`region`**，Azure 用 **`location`**，实现中单一函数 `providerKind(provider)` 返回 `'aws'|'azure'`，歧义或两键皆无则 **throw**）、`variables`、`cells`（值为包名字符串或 `{ package, params? }` 扩展可后续加）、**拒绝**任意位置出现 `!Param`（抛错）。**整文件 AST/tag 校验（与 spec §6.1、§6.4 对齐）**：`**!Env` / `!Secret` / `!Var` 仅允许出现在**顶层 **`variables` 子树**以及 **`cells[mount].params` 的值**中；在 `name`、`provider`、`cells` 键名映射（非 params 值）等其它位置出现上述 tag → **throw**。
+- [x] **Step 2:** **未知顶层键**收集为 `warnings: string[]` 返回，不抛错。
+- [x] **Step 3:** Commit：`feat(stack): parse otavia.yaml shape`
 
 ---
 
@@ -124,11 +124,11 @@
 - Create: `packages/stack/src/variables/graph.ts`
 - Create: `packages/stack/src/variables/resolve-top-variables.test.ts`
 
-- [ ] **Step 1:** 从 `variables` 树收集 **`!Var` 边**（源键 → 目标键名）；检测环；无环则拓扑求值。
-- [ ] **Step 2:** `!Env`/`!Secret` 作为叶节点参与拓扑；解析后填充 `environments`、`secrets` 侧车结构（spec §6.5）。
-- [ ] **Step 3:** `!Var` 目标不在树内 → 从传入的 `processEnv` 取字符串。
-- [ ] **Step 4:** 测试：含环 YAML 应 throw；无环应得确定顺序结果。
-- [ ] **Step 5:** Commit：`feat(stack): resolve top-level variables with cycle detection`
+- [x] **Step 1:** 从 `variables` 树收集 **`!Var` 边**（源键 → 目标键名）；检测环；无环则拓扑求值。
+- [x] **Step 2:** `!Env`/`!Secret` 作为叶节点参与拓扑；解析后填充 `environments`、`secrets` 侧车结构（spec §6.5）。
+- [x] **Step 3:** `!Var` 目标不在树内 → 从传入的 `processEnv` 取字符串。
+- [x] **Step 4:** 测试：含环 YAML 应 throw；无环应得确定顺序结果。
+- [x] **Step 5:** Commit：`feat(stack): resolve top-level variables with cycle detection`
 
 ---
 
