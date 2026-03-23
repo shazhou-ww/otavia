@@ -1,2 +1,5 @@
-/** @otavia/runtime-azure — scaffold placeholder */
-export {};
+import type { CloudPlatform } from "@otavia/runtime-contract";
+
+export function platform(): CloudPlatform {
+  return "azure";
+}

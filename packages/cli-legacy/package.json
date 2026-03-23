@@ -1,6 +1,7 @@
 {
   "name": "@otavia/cli-legacy",
   "version": "0.1.1",
+  "deprecated": "Use @otavia/cli for AWS/Azure multicloud workflows; this package remains for existing AWS-only stacks during migration.",
   "description": "CLI for Otavia stack (deploy, dev, local tooling)",
   "type": "module",
   "exports": {

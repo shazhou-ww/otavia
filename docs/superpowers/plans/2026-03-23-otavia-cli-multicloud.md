@@ -292,10 +292,10 @@
 - Create: `packages/cli/src/commands/dev.ts`
 - Create: `packages/cli/src/dev/gateway.ts`（可从 legacy **复制后改编** import 路径，减少发明）
 
-- [ ] **Step 1:** 读 legacy `packages/cli-legacy/src/commands/dev/**` 最小子集，改为依赖 `StackModel`。
-- [ ] **Step 2:** `loadEnvForCommand(..., 'dev')`；随后 **`buildStackModel(...)`**（与 Task 19 同参模式）；失败则 **exit 1**（解析/校验错误原样输出）。
-- [ ] **Step 3:** **spec §7**：启动本地服务前调用 **`host.checkCredentials()`**（或等价命名）；失败则 **exit 1** 并提示登录方式（与 `setup` 分工：`setup` 装工具，`dev` 仍须能发现未登录）。
-- [ ] **Step 4:** Commit：`feat(cli): dev server`
+- [x] **Step 1:** 读 legacy `packages/cli-legacy/src/commands/dev/**` 最小子集，改为依赖 `StackModel`。
+- [x] **Step 2:** `loadEnvForCommand(..., 'dev')`；随后 **`buildStackModel(...)`**（与 Task 19 同参模式）；失败则 **exit 1**（解析/校验错误原样输出）。
+- [x] **Step 3:** **spec §7**：启动本地服务前调用 **`host.checkCredentials()`**（或等价命名）；失败则 **exit 1** 并提示登录方式（与 `setup` 分工：`setup` 装工具，`dev` 仍须能发现未登录）。
+- [x] **Step 4:** Commit：`feat(cli): dev server`
 
 ---
 
@@ -304,11 +304,11 @@
 **Files:**
 - Create: `packages/cli/src/commands/test.ts`, `lint.ts`, `typecheck.ts`
 
-- [ ] **Step 1:** `test`：对 **stack 包目录**与 **解析出的每个 cell 包目录**执行 `bun test`（或 `package.json` scripts 约定）；`loadEnvForCommand(..., 'test')` 注入环境。
-- [ ] **Step 2:** `lint`：`biome check` 同样遍历。
-- [ ] **Step 3:** `typecheck`：`tsc -p` 或 `bun run typecheck`  per 包。
-- [ ] **Step 4:** **fail-fast**：默认第一次失败即退出非零（在 help 中说明）。
-- [ ] **Step 5:** Commit：`feat(cli): test lint typecheck orchestration`
+- [x] **Step 1:** `test`：对 **stack 包目录**与 **解析出的每个 cell 包目录**执行 `bun test`（或 `package.json` scripts 约定）；`loadEnvForCommand(..., 'test')` 注入环境。
+- [x] **Step 2:** `lint`：`biome check` 同样遍历。
+- [x] **Step 3:** `typecheck`：`tsc -p` 或 `bun run typecheck`  per 包。
+- [x] **Step 4:** **fail-fast**：默认第一次失败即退出非零（在 help 中说明）。
+- [x] **Step 5:** Commit：`feat(cli): test lint typecheck orchestration`
 
 ---
 
@@ -318,8 +318,8 @@
 - Modify: `packages/cli` 模板中 `cells/hello/backend/handler.ts` 引用 `@otavia/runtime-contract` 与具体 runtime 包
 - Modify: `packages/runtime-aws`、`packages/runtime-azure` 实现极小 `createRequestContext` 之类
 
-- [ ] **Step 1:** MVP：单函数 `export function platform(): 'aws'|'azure'` 用于演示。
-- [ ] **Step 2:** Commit：`feat(runtime): minimal platform adapters for hello cell`
+- [x] **Step 1:** MVP：单函数 `export function platform(): 'aws'|'azure'` 用于演示。
+- [x] **Step 2:** Commit：`feat(runtime): minimal platform adapters for hello cell`
 
 ---
 
@@ -329,8 +329,8 @@
 - Modify: `README.md`（新增一节「新 CLI」，指向 `@otavia/cli`；说明与 legacy 共存期）
 - Modify: `packages/cli/package.json` — `"bin": { "otavia": "..." }`（注意与全局 `otavia` 冲突时文档建议用 `bun run` 或 `npx`）
 
-- [ ] **Step 1:** 文档中列出 **AWS / Azure deploy 前置条件**。
-- [ ] **Step 2:** Commit：`docs: document new Otavia CLI`
+- [x] **Step 1:** 文档中列出 **AWS / Azure deploy 前置条件**。
+- [x] **Step 2:** Commit：`docs: document new Otavia CLI`
 
 ---
 
@@ -339,8 +339,8 @@
 **Files:**
 - Create: `packages/cli/scripts/smoke-init.mjs`（或 bun ts）— 在 `os.tmpdir()` 下 `init` + `bun install --no-cache` + `typecheck`（不默认 deploy）
 
-- [ ] **Step 1:** 根 `package.json` `scripts.smoke:init` 指向该脚本。
-- [ ] **Step 2:** Commit：`chore: add smoke script for init pipeline`
+- [x] **Step 1:** 根 `package.json` `scripts.smoke:init` 指向该脚本。
+- [x] **Step 2:** Commit：`chore: add smoke script for init pipeline`
 
 ---
 
@@ -349,7 +349,7 @@
 **Files:**
 - Modify: `packages/cli-legacy/package.json` — `deprecated` 字段与 message 指向 `@otavia/cli`
 
-- [ ] **Step 1:** Commit：`chore(cli-legacy): deprecation notice`
+- [x] **Step 1:** Commit：`chore(cli-legacy): deprecation notice`
 
 ---
 

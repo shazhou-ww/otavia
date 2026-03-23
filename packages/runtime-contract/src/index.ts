@@ -1,2 +1,1 @@
-/** @otavia/runtime-contract — scaffold placeholder */
-export {};
+export type CloudPlatform = "aws" | "azure";

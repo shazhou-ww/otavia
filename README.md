@@ -4,6 +4,16 @@
 
 本仓库提供的 **CLI** 负责：在单体仓库中管理 cells、本地 **dev**（网关 + Vite）、以及向 AWS **部署**。
 
+## 新多云 CLI（`@otavia/cli`）
+
+与 legacy 包 **`@otavia/cli-legacy`** 并存期间，推荐使用 **`@otavia/cli`** 做 **AWS / Azure** 双云栈（`otavia.yaml` 用 `provider.region` 或 `provider.location` 区分）。
+
+- **入口**：仓库内 `bun run cli:multicloud` 或 `bun run --cwd packages/cli src/cli.ts`；安装到 path 后可用 **`otavia`**（见 `packages/cli/package.json` 的 `bin`）。
+- **常用命令**：`init`、`setup`、`dev`、`deploy`、`test` / `lint` / `typecheck`（后三者按栈与 cell 包 **fail-fast** 遍历）。
+- **AWS**：需安装 **AWS CLI**；`deploy` / `dev` 会校验凭证（`dev` 可用 `OTAVIA_DEV_SKIP_CREDENTIAL_CHECK=1` 仅本地调试）。
+- **Azure**：需安装 **Azure CLI** 与 **Bicep**（`az bicep version` 或独立 `bicep`）；`deploy` 需环境变量 **`OTAVIA_AZURE_RESOURCE_GROUP`**。
+- **冒烟**：仓库根执行 `bun run smoke:init`（临时目录 `init` + `bun install --no-cache`，不部署）。
+
 ## 环境要求
 
 - **[Bun](https://bun.sh)**（运行时、包管理与 CLI；单元测试亦基于 Bun）

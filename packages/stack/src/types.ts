@@ -20,6 +20,8 @@ export type StackModel = {
   topLevelVariableValues: Record<string, string>;
   environments: VariableEnvBinding[];
   secrets: VariableSecretBinding[];
+  /** `cells` mounts in `otavia.yaml` declaration order. */
+  cellMountOrder: string[];
   cells: Record<string, StackCellModel>;
   warnings: string[];
 };

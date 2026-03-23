@@ -2,7 +2,11 @@
 import { Command } from "commander";
 import { runInit } from "./commands/init.js";
 import { runDeploy } from "./commands/deploy.js";
+import { runDev } from "./commands/dev.js";
+import { runLintCommand } from "./commands/lint.js";
 import { runSetup } from "./commands/setup.js";
+import { runTestCommand } from "./commands/test.js";
+import { runTypecheckCommand } from "./commands/typecheck.js";
 import { createHostAdapterForProvider } from "./host/create-host-adapter.js";
 
 const program = new Command();
@@ -34,6 +38,34 @@ program
   .description("Validate stack, check credentials, deploy to the active cloud")
   .action(async () => {
     await runDeploy();
+  });
+
+program
+  .command("dev")
+  .description("Local dev: gateway + Vite (when cells define frontend)")
+  .action(async () => {
+    await runDev();
+  });
+
+program
+  .command("test")
+  .description("Run tests in stack and cell packages (fail-fast)")
+  .action(() => {
+    runTestCommand();
+  });
+
+program
+  .command("lint")
+  .description("Run biome check on workspace, stack, and cells (fail-fast; requires biome.json)")
+  .action(() => {
+    runLintCommand();
+  });
+
+program
+  .command("typecheck")
+  .description("Run typecheck script in stack and cell packages when present (fail-fast)")
+  .action(() => {
+    runTypecheckCommand();
   });
 
 program

@@ -122,8 +122,10 @@ export function buildStackModel(input: {
 
   const warnings = [...parsed.warnings];
   const cells: Record<string, StackCellModel> = {};
+  const cellMountOrder: string[] = [];
 
   for (const item of parsed.cellsList) {
+    cellMountOrder.push(item.mount);
     const pkgRootAbs = resolveCellPackageDir(stackRootAbs, item.package);
     const cellYamlPath = join(pkgRootAbs, "cell.yaml");
     const cellYaml = parseCellYaml(readFileSync(cellYamlPath, "utf8"));
@@ -172,6 +174,7 @@ export function buildStackModel(input: {
     topLevelVariableValues: top.values,
     environments: top.environments,
     secrets: top.secrets,
+    cellMountOrder,
     cells,
     warnings,
   };
