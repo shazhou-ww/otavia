@@ -278,6 +278,102 @@ cells:
     expect(r.cellOverrides).toBeUndefined();
   });
 
+  // ── DP-11 ~ DP-16 acceptance tests ──────────────────────────────
+
+  test("DP-11: deploy replaces defaults — top-level deploy parses correctly", () => {
+    const r = parseOtaviaYaml(`
+name: casfa
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  hello: "@acme/hello"
+deploy:
+  timeout: 30
+  memory: 512
+  runtime: nodejs20.x
+`);
+    expect(r.deploy).toEqual({ timeout: 30, memory: 512, runtime: "nodejs20.x" });
+    expect(r.warnings).toEqual([]);
+  });
+
+  test("DP-12: defaults is rejected — produces unknown key warning", () => {
+    const r = parseOtaviaYaml(`
+name: casfa
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  hello: "@acme/hello"
+defaults:
+  timeout: 30
+`);
+    expect(r.warnings.some((w) => w.includes("defaults"))).toBe(true);
+    expect(r.deploy).toBeUndefined();
+  });
+
+  test("DP-13: cells Record format — object and string values parse as Record", () => {
+    const r = parseOtaviaYaml(`
+name: casfa
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  sso:
+    package: "@casfa/sso"
+  drive: "@casfa/drive"
+`);
+    expect(r.cells).toEqual({ sso: "@casfa/sso", drive: "@casfa/drive" });
+    expect(r.cellsList).toEqual([
+      { mount: "sso", package: "@casfa/sso" },
+      { mount: "drive", package: "@casfa/drive" },
+    ]);
+    expect(r.warnings).toEqual([]);
+  });
+
+  test("DP-14: cells array format backward compat — array still parses", () => {
+    const r = parseOtaviaYaml(`
+name: casfa
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  - package: "@casfa/sso"
+    mount: sso
+  - package: "@casfa/drive"
+    mount: drive
+`);
+    expect(r.cells).toEqual({ sso: "@casfa/sso", drive: "@casfa/drive" });
+    expect(r.cellsList).toHaveLength(2);
+    expect(r.cellsList[0]).toMatchObject({ mount: "sso", package: "@casfa/sso" });
+    expect(r.cellsList[1]).toMatchObject({ mount: "drive", package: "@casfa/drive" });
+  });
+
+  test("DP-15: per-cell deploy explicit — deploy extracted from cell object", () => {
+    const r = parseOtaviaYaml(`
+name: casfa
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  drive:
+    package: "@casfa/drive"
+    deploy:
+      memory: 1024
+`);
+    expect(r.cellsList[0]?.deploy).toEqual({ memory: 1024 });
+    expect(r.cellOverrides).toEqual({ drive: { memory: 1024 } });
+  });
+
+  test("DP-16: DeployParams accepts runtime — runtime stored without error", () => {
+    const r = parseOtaviaYaml(`
+name: casfa
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  api:
+    package: "@casfa/api"
+    deploy:
+      runtime: nodejs20.x
+      memory: 256
+deploy:
+  runtime: nodejs20.x
+`);
+    expect(r.deploy).toEqual({ runtime: "nodejs20.x" });
+    expect(r.cellsList[0]?.deploy).toEqual({ runtime: "nodejs20.x", memory: 256 });
+    expect(r.cellOverrides).toEqual({ api: { runtime: "nodejs20.x", memory: 256 } });
+    expect(r.warnings).toEqual([]);
+  });
+
   test("cells array format with deploy", () => {
     const r = parseOtaviaYaml(`
 name: x
