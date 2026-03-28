@@ -1,7 +1,7 @@
 import { isEnvRef, isSecretRef } from "../yaml/tags.js";
 import { parseYamlWithOtaviaTags } from "../yaml/load-yaml.js";
 
-const KNOWN_TOP_LEVEL = new Set(["name", "params", "variables", "backend", "frontend"]);
+const KNOWN_TOP_LEVEL = new Set(["name", "params", "backend", "frontend", "tables", "oauth"]);
 
 function assertNoEnvOrSecretInTree(node: unknown, path: string): void {
   if (node === null || node === undefined) return;
@@ -25,11 +25,36 @@ function assertNoEnvOrSecretInTree(node: unknown, path: string): void {
 export type ParsedCellYaml = {
   name: string;
   params: string[];
-  variables?: Record<string, unknown>;
   backend?: Record<string, unknown>;
   frontend?: Record<string, unknown>;
+  tables?: Record<string, unknown>;
+  oauth?: Record<string, unknown>;
   warnings: string[];
 };
+
+const DEPLOY_ONLY_KEYS = new Set(["timeout", "memory", "memorySize", "concurrency", "layers", "vpc"]);
+const ALLOWED_ENTRY_KEYS = new Set(["handler", "routes"]);
+
+function validateBackendEntries(backend: Record<string, unknown>, warnings: string[]): void {
+  const entries = backend.entries;
+  if (entries == null) return;
+  if (typeof entries !== "object" || Array.isArray(entries)) return;
+  for (const [entryName, entryVal] of Object.entries(entries as Record<string, unknown>)) {
+    if (entryVal == null || typeof entryVal !== "object" || Array.isArray(entryVal)) continue;
+    for (const key of Object.keys(entryVal as Record<string, unknown>)) {
+      if (DEPLOY_ONLY_KEYS.has(key)) {
+        throw new Error(
+          `cell.yaml: backend.entries.${entryName}.${key} is a deploy-time parameter and must not appear in cell.yaml`
+        );
+      }
+      if (!ALLOWED_ENTRY_KEYS.has(key)) {
+        warnings.push(
+          `backend.entries.${entryName}: unknown key "${key}" (only handler and routes are allowed)`
+        );
+      }
+    }
+  }
+}
 
 /**
  * Parse `cell.yaml` text with Otavia tags; forbid `!Env` / `!Secret` everywhere (spec §6.1).
@@ -69,20 +94,13 @@ export function parseCellYaml(content: string): ParsedCellYaml {
     }
   }
 
-  let variables: Record<string, unknown> | undefined;
-  if (data.variables != null) {
-    if (typeof data.variables !== "object" || Array.isArray(data.variables)) {
-      throw new Error("cell.yaml: 'variables' must be an object when present");
-    }
-    variables = data.variables as Record<string, unknown>;
-  }
-
   let backend: Record<string, unknown> | undefined;
   if (data.backend != null) {
     if (typeof data.backend !== "object" || Array.isArray(data.backend)) {
       throw new Error("cell.yaml: 'backend' must be an object when present");
     }
     backend = data.backend as Record<string, unknown>;
+    validateBackendEntries(backend, warnings);
   }
 
   let frontend: Record<string, unknown> | undefined;
@@ -93,12 +111,29 @@ export function parseCellYaml(content: string): ParsedCellYaml {
     frontend = data.frontend as Record<string, unknown>;
   }
 
+  let tables: Record<string, unknown> | undefined;
+  if (data.tables != null) {
+    if (typeof data.tables !== "object" || Array.isArray(data.tables)) {
+      throw new Error("cell.yaml: 'tables' must be an object when present");
+    }
+    tables = data.tables as Record<string, unknown>;
+  }
+
+  let oauth: Record<string, unknown> | undefined;
+  if (data.oauth != null) {
+    if (typeof data.oauth !== "object" || Array.isArray(data.oauth)) {
+      throw new Error("cell.yaml: 'oauth' must be an object when present");
+    }
+    oauth = data.oauth as Record<string, unknown>;
+  }
+
   return {
     name: name.trim(),
     params,
-    variables,
     backend,
     frontend,
+    tables,
+    oauth,
     warnings,
   };
 }

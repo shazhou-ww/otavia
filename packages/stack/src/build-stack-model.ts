@@ -3,7 +3,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { parseCellYaml } from "./cell/parse-cell-yaml.js";
 import { resolveCellBodyFields } from "./cell/resolve-cell-body.js";
 import { resolveCellVariables } from "./cell/resolve-cell-variables.js";
-import { parseOtaviaYaml, providerKind } from "./otavia/parse-otavia-yaml.js";
+import { type DeployParams, parseOtaviaYaml, providerKind } from "./otavia/parse-otavia-yaml.js";
 import { resolveCellMountParams } from "./otavia/resolve-cell-mount-params.js";
 import { resolveCellPackageDir } from "./resolve/resolve-cell-package-dir.js";
 import type { StackCellModel, StackModel } from "./types.js";
@@ -93,6 +93,14 @@ function normalizeCellConfigPaths(
   return { backend: nb, frontend: nf };
 }
 
+function mergeDeployParams(
+  defaults: DeployParams | undefined,
+  cellOverride: DeployParams | undefined
+): DeployParams | undefined {
+  if (defaults == null && cellOverride == null) return undefined;
+  return { ...defaults, ...cellOverride };
+}
+
 function assertDeclaredCellParams(
   mount: string,
   declared: string[],
@@ -136,7 +144,7 @@ export function buildStackModel(input: {
     assertDeclaredCellParams(item.mount, cellYaml.params, item.params);
     const mergedStackParams = resolveCellMountParams(item.params, top.values);
     const cellVariableValues = resolveCellVariables(
-      cellYaml.variables,
+      undefined,
       mergedStackParams,
       input.env
     );
@@ -153,6 +161,8 @@ export function buildStackModel(input: {
       stackRootAbs
     );
 
+    const cellDeploy = mergeDeployParams(parsed.defaults, item.deploy);
+
     cells[item.mount] = {
       mount: item.mount,
       packageName: item.package,
@@ -162,6 +172,7 @@ export function buildStackModel(input: {
       cellVariableValues,
       backend: normalized.backend,
       frontend: normalized.frontend,
+      ...(cellDeploy ? { deploy: cellDeploy } : {}),
     };
   }
 
@@ -177,6 +188,7 @@ export function buildStackModel(input: {
     cellMountOrder,
     cells,
     resourceTables: parsed.resourceTables,
+    ...(parsed.defaults ? { defaults: parsed.defaults } : {}),
     warnings,
   };
 }

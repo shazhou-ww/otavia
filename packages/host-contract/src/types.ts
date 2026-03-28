@@ -8,7 +8,7 @@ export interface DeployResourceTable {
   logicalId: string;
   partitionKeyAttr: string;
   rowKeyAttr: string;
-  /** Segment for `OTAVIA_TABLE_${envSuffix}_*` env keys (align with `tableLogicalIdToEnvSuffix` in `@otavia/runtime-contract`). */
+  /** Segment for `OTAVIA_TABLE_${envSuffix}_*` env keys. */
   envSuffix: string;
 }
 

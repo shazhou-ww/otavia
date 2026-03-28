@@ -19,7 +19,6 @@
   "dependencies": {
     "@otavia/host-aws": "workspace:*",
     "@otavia/host-contract": "workspace:*",
-    "@otavia/runtime-contract": "workspace:*",
     "@otavia/stack": "workspace:*",
     "@vitejs/plugin-react": "^4.3.4",
     "commander": "^12.1.0",

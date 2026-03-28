@@ -1,5 +1,4 @@
 import type { DeployInput } from "@otavia/host-contract";
-import { tableLogicalIdToEnvSuffix } from "@otavia/runtime-contract";
 import type { StackModel } from "@otavia/stack";
 import { buildStackModel } from "@otavia/stack";
 import { cwd } from "node:process";
@@ -8,6 +7,10 @@ import { mergeProcessAndFileEnv } from "../env/merge-process-env.js";
 import { createHostAdapterForCloud } from "../host/create-host-adapter.js";
 import { findStackRoot } from "../resolve/find-stack-root.js";
 import { findWorkspaceRoot } from "../resolve/find-workspace-root.js";
+
+function tableLogicalIdToEnvSuffix(logicalTableId: string): string {
+  return logicalTableId.toUpperCase().replace(/[^A-Z0-9]/g, "_");
+}
 
 export function deployInputFromStackModel(model: StackModel, stackRootAbs: string): DeployInput {
   const environments: Record<string, string> = {};

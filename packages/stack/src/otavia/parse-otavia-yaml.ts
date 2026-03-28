@@ -2,14 +2,19 @@ import type { CloudProvider, StackResourceTable } from "../types.js";
 import { parseYamlWithOtaviaTags } from "../yaml/load-yaml.js";
 import { validateOtaviaTagZones } from "./validate-otavia-tag-zones.js";
 
-const KNOWN_TOP_LEVEL = new Set(["name", "cloud", "variables", "cells", "domain", "resources"]);
+const KNOWN_TOP_LEVEL = new Set(["name", "cloud", "variables", "cells", "domain", "resources", "defaults"]);
 
 const DEFAULT_SCOPE = "@otavia";
+
+const KNOWN_CELL_KEYS = new Set(["package", "mount", "params"]);
+
+export type DeployParams = { timeout?: number; memory?: number; [key: string]: unknown };
 
 export type OtaviaCellsListItem = {
   mount: string;
   package: string;
   params?: Record<string, unknown>;
+  deploy?: DeployParams;
 };
 
 export type ParsedOtaviaYaml = {
@@ -19,6 +24,8 @@ export type ParsedOtaviaYaml = {
   /** mount -> package name */
   cells: Record<string, string>;
   cellsList: OtaviaCellsListItem[];
+  defaults?: DeployParams;
+  cellOverrides?: Record<string, DeployParams>;
   domain?: Record<string, unknown>;
   /** `resources.tables` — logical id → partition/sort attribute names (v1: string keys only). */
   resourceTables: Record<string, StackResourceTable>;
@@ -31,6 +38,42 @@ function normalizeParams(value: unknown, pathLabel: string): Record<string, unkn
     throw new Error(`${pathLabel} must be an object`);
   }
   return value as Record<string, unknown>;
+}
+
+function validateDeployParams(obj: Record<string, unknown>, pathLabel: string): void {
+  if (obj.timeout != null && typeof obj.timeout !== "number") {
+    throw new Error(`${pathLabel}.timeout must be a number`);
+  }
+  if (obj.memory != null && typeof obj.memory !== "number") {
+    throw new Error(`${pathLabel}.memory must be a number`);
+  }
+}
+
+function parseDefaults(data: unknown, pathLabel: string): DeployParams | undefined {
+  if (data == null) return undefined;
+  if (typeof data !== "object" || Array.isArray(data)) {
+    throw new Error(`${pathLabel} must be an object`);
+  }
+  const obj = data as Record<string, unknown>;
+  validateDeployParams(obj, pathLabel);
+  return obj as DeployParams;
+}
+
+function extractDeployParams(
+  record: Record<string, unknown>,
+  pathLabel: string
+): DeployParams | undefined {
+  const deploy: Record<string, unknown> = {};
+  let found = false;
+  for (const [key, value] of Object.entries(record)) {
+    if (!KNOWN_CELL_KEYS.has(key)) {
+      deploy[key] = value;
+      found = true;
+    }
+  }
+  if (!found) return undefined;
+  validateDeployParams(deploy, pathLabel);
+  return deploy as DeployParams;
 }
 
 function packageToMount(packageName: string): string {
@@ -59,7 +102,7 @@ function parseCells(data: unknown): { cells: Record<string, string>; cellsList: 
         continue;
       }
       if (item == null || typeof item !== "object" || Array.isArray(item)) {
-        throw new Error(`${itemPath} must be a string or an object { package, mount?, params? }`);
+        throw new Error(`${itemPath} must be a string or an object { package, mount?, params?, ...deployParams }`);
       }
       const record = item as Record<string, unknown>;
       const packageName = typeof record.package === "string" ? record.package.trim() : "";
@@ -70,7 +113,8 @@ function parseCells(data: unknown): { cells: Record<string, string>; cellsList: 
           : packageToMount(packageName);
       if (!mount) throw new Error(`${itemPath}.mount is required when package cannot infer mount`);
       const params = normalizeParams(record.params, `${itemPath}.params`);
-      cellsList.push({ mount, package: packageName, params });
+      const deploy = extractDeployParams(record, itemPath);
+      cellsList.push({ mount, package: packageName, params, ...(deploy ? { deploy } : {}) });
     }
     const cells = Object.fromEntries(cellsList.map((c) => [c.mount, c.package]));
     return { cells, cellsList };
@@ -96,7 +140,7 @@ function parseCells(data: unknown): { cells: Record<string, string>; cellsList: 
       }
       if (cellDef == null || typeof cellDef !== "object" || Array.isArray(cellDef)) {
         throw new Error(
-          `otavia.yaml: cells["${mount}"] must be a package string or object { package, params? }`
+          `otavia.yaml: cells["${mount}"] must be a package string or object { package, params?, ...deployParams }`
         );
       }
       const record = cellDef as Record<string, unknown>;
@@ -105,7 +149,8 @@ function parseCells(data: unknown): { cells: Record<string, string>; cellsList: 
         throw new Error(`otavia.yaml: cells["${mount}"].package must be a non-empty string`);
       }
       const params = normalizeParams(record.params, `otavia.yaml: cells["${mount}"].params`);
-      cellsList.push({ mount, package: packageName, params });
+      const deploy = extractDeployParams(record, `otavia.yaml: cells["${mount}"]`);
+      cellsList.push({ mount, package: packageName, params, ...(deploy ? { deploy } : {}) });
     }
     const cells = Object.fromEntries(cellsList.map((c) => [c.mount, c.package]));
     return { cells, cellsList };
@@ -240,7 +285,16 @@ export function parseOtaviaYaml(content: string): ParsedOtaviaYaml {
     variables = data.variables as Record<string, unknown>;
   }
 
+  const defaults = parseDefaults(data.defaults, 'otavia.yaml: "defaults"');
+
   const { cells, cellsList } = parseCells(data.cells);
+
+  const cellOverrides: Record<string, DeployParams> = {};
+  for (const item of cellsList) {
+    if (item.deploy) {
+      cellOverrides[item.mount] = item.deploy;
+    }
+  }
 
   let domain: Record<string, unknown> | undefined;
   if (data.domain != null) {
@@ -258,5 +312,16 @@ export function parseOtaviaYaml(content: string): ParsedOtaviaYaml {
     resourceTables = parseResourceTables(data.resources as Record<string, unknown>, warnings);
   }
 
-  return { name, cloud, variables, cells, cellsList, domain, resourceTables, warnings };
+  return {
+    name,
+    cloud,
+    variables,
+    cells,
+    cellsList,
+    defaults,
+    ...(Object.keys(cellOverrides).length > 0 ? { cellOverrides } : {}),
+    domain,
+    resourceTables,
+    warnings,
+  };
 }
