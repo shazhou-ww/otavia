@@ -1,4 +1,4 @@
-import type { DeployInput } from "@otavia/host-contract";
+import type { DeployInput, DeployInputDeployParams } from "@otavia/host-contract";
 import type { StackModel } from "@otavia/stack";
 import { buildStackModel } from "@otavia/stack";
 import { cwd } from "node:process";
@@ -31,6 +31,16 @@ export function deployInputFromStackModel(model: StackModel, stackRootAbs: strin
           rowKeyAttr: t.rowKey,
           envSuffix: tableLogicalIdToEnvSuffix(logicalId),
         }));
+  const deploy: DeployInputDeployParams | undefined = model.deploy ?? undefined;
+
+  const cellDeploy: Record<string, DeployInputDeployParams> = {};
+  for (const mount of model.cellMountOrder) {
+    const cell = model.cells[mount];
+    if (cell?.deploy) {
+      cellDeploy[mount] = cell.deploy;
+    }
+  }
+
   return {
     stackRoot: stackRootAbs,
     stackName: model.name,
@@ -38,6 +48,8 @@ export function deployInputFromStackModel(model: StackModel, stackRootAbs: strin
     environments,
     secrets,
     resourceTables,
+    deploy,
+    ...(Object.keys(cellDeploy).length > 0 ? { cellDeploy } : {}),
   };
 }
 

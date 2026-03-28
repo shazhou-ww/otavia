@@ -3,6 +3,14 @@
  */
 export type ProviderId = "aws";
 
+/** Deploy-time function/resource parameters (timeout, memory, runtime, etc.). */
+export interface DeployInputDeployParams {
+  timeout?: number;
+  memory?: number;
+  runtime?: string;
+  [key: string]: unknown;
+}
+
 /** Declarative table (DynamoDB / Cosmos Table API) for deploy-time IaC and env injection. */
 export interface DeployResourceTable {
   logicalId: string;
@@ -35,6 +43,10 @@ export interface DeployInput {
   secrets: Record<string, unknown>;
   /** When set, hosts provision portable row-store tables and inject `OTAVIA_TABLE_*` settings. */
   resourceTables?: DeployResourceTable[];
+  /** Stack-level base deploy parameters from otavia.yaml `deploy`. */
+  deploy?: DeployInputDeployParams;
+  /** Per-cell deploy parameters keyed by cell mount (merged with stack-level base). */
+  cellDeploy?: Record<string, DeployInputDeployParams>;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Hono } from "hono";
@@ -9,32 +9,54 @@ import { resolveRootRedirectMount } from "./mount-selection.js";
 type HonoApp = { fetch: (req: Request) => Response | Promise<Response> };
 type CreateAppFactory = (env: Record<string, string>) => HonoApp | Promise<HonoApp>;
 
+type CellBackendConfig = {
+  dir?: string;
+  entries?: Record<string, { entry?: string; routes?: string[] }>;
+};
+
+function extractGatewayFactory(mod: Record<string, unknown>): CreateAppFactory | null {
+  if (typeof mod?.createAppForBackend === "function") {
+    return mod.createAppForBackend as CreateAppFactory;
+  }
+  if (typeof mod?.createAppForGateway === "function") {
+    return mod.createAppForGateway as CreateAppFactory;
+  }
+  return null;
+}
+
+function buildBackendEntryCandidates(cell: StackCellModel): string[] {
+  const backend = cell.backend as CellBackendConfig | undefined;
+  const backendDir = backend?.dir ?? "backend";
+  const entries = backend?.entries;
+  if (entries && Object.keys(entries).length > 0) {
+    const paths: string[] = [];
+    for (const entry of Object.values(entries)) {
+      if (entry.entry) {
+        paths.push(resolve(cell.packageRootAbs, backendDir, entry.entry));
+      }
+    }
+    if (paths.length > 0) return paths;
+  }
+  return [
+    resolve(cell.packageRootAbs, backendDir, "app.ts"),
+    resolve(cell.packageRootAbs, backendDir, "gateway-app.ts"),
+  ];
+}
+
 async function loadCellGatewayApp(cell: StackCellModel): Promise<CreateAppFactory | null> {
   try {
     const mod = await import(`${cell.packageName}/backend`);
-    if (typeof mod?.createAppForBackend === "function") {
-      return mod.createAppForBackend as CreateAppFactory;
-    }
-    if (typeof mod?.createAppForGateway === "function") {
-      return mod.createAppForGateway as CreateAppFactory;
-    }
+    const factory = extractGatewayFactory(mod);
+    if (factory) return factory;
   } catch {
     /* try file paths */
   }
-  const candidates = [
-    resolve(cell.packageRootAbs, "backend", "app.ts"),
-    resolve(cell.packageRootAbs, "backend", "gateway-app.ts"),
-  ];
-  for (const backendEntryPath of candidates) {
+  for (const backendEntryPath of buildBackendEntryCandidates(cell)) {
     if (!existsSync(backendEntryPath)) continue;
     try {
       const mod = await import(pathToFileURL(backendEntryPath).href);
-      if (typeof mod?.createAppForBackend === "function") {
-        return mod.createAppForBackend as CreateAppFactory;
-      }
-      if (typeof mod?.createAppForGateway === "function") {
-        return mod.createAppForGateway as CreateAppFactory;
-      }
+      const factory = extractGatewayFactory(mod);
+      if (factory) return factory;
     } catch {
       /* next */
     }
