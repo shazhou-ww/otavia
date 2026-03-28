@@ -3,15 +3,29 @@
   "version": "0.0.1",
   "description": "Otavia CLI (AWS-only)",
   "type": "module",
+  "types": "./dist/cli.d.ts",
   "bin": {
-    "otavia": "src/cli.ts"
+    "otavia": "dist/cli.js"
   },
   "exports": {
-    ".": "./src/cli.ts",
-    "./dev/main-frontend-runtime/main-entry": "./src/dev/main-frontend-runtime/main-entry.ts",
-    "./dev/main-frontend-runtime/vite-config": "./src/dev/main-frontend-runtime/vite-config.ts"
+    ".": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js"
+    },
+    "./dev/main-frontend-runtime/main-entry": {
+      "types": "./dist/dev/main-frontend-runtime/main-entry.d.ts",
+      "import": "./dist/dev/main-frontend-runtime/main-entry.js"
+    },
+    "./dev/main-frontend-runtime/vite-config": {
+      "types": "./dist/dev/main-frontend-runtime/vite-config.d.ts",
+      "import": "./dist/dev/main-frontend-runtime/vite-config.js"
+    }
   },
+  "files": ["dist", "src"],
   "scripts": {
+    "build": "bun run build:js && bun run build:types",
+    "build:js": "bun build ./src/cli.ts ./src/dev/main-frontend-runtime/main-entry.ts ./src/dev/main-frontend-runtime/vite-config.ts --outdir dist --target node --format esm --packages external",
+    "build:types": "tsc -p tsconfig.build.json",
     "dev": "bun run src/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test src/"
