@@ -10,7 +10,7 @@ backend:
   runtime: bun
   entries:
     api:
-      handler: backend/handler.ts
+      entry: backend/handler.ts
       routes: []
 `);
     expect(r.name).toBe("hello");
@@ -69,12 +69,12 @@ tables: "invalid"
 name: myapp
 params: []
 oauth:
-  providers:
-    google:
-      callbackPath: /oauth/callback
+  scopes:
+    - openid
+    - email
 `);
     expect(r.oauth).toBeDefined();
-    expect(r.oauth!.providers).toBeDefined();
+    expect(r.oauth!.scopes).toEqual(["openid", "email"]);
     expect(r.warnings).toEqual([]);
   });
 
@@ -95,9 +95,10 @@ params:
   - region
 backend:
   runtime: bun
+  dir: src/backend
   entries:
     api:
-      handler: handler.ts
+      entry: handler.ts
       routes:
         - /api/users
 frontend:
@@ -106,16 +107,26 @@ tables:
   sessions:
     primaryKey: sid
 oauth:
-  providers:
-    github:
-      callbackPath: /auth/github/callback
+  scopes:
+    - openid
+variables:
+  API_URL: https://api.example.com
+buckets:
+  uploads:
+    public: true
+testing:
+  seed: fixtures/seed.json
 `);
     expect(r.name).toBe("fullapp");
     expect(r.params).toEqual(["region"]);
     expect(r.backend).toBeDefined();
+    expect(r.backend!.dir).toBe("src/backend");
     expect(r.frontend).toBeDefined();
     expect(r.tables).toBeDefined();
-    expect(r.oauth).toBeDefined();
+    expect(r.oauth).toEqual({ scopes: ["openid"] });
+    expect(r.variables).toBeDefined();
+    expect(r.buckets).toBeDefined();
+    expect(r.testing).toBeDefined();
     expect(r.warnings).toEqual([]);
   });
 
@@ -128,7 +139,7 @@ backend:
   runtime: bun
   entries:
     api:
-      handler: handler.ts
+      entry: handler.ts
       routes: []
       timeout: 30
 `)
@@ -144,7 +155,7 @@ backend:
   runtime: bun
   entries:
     api:
-      handler: handler.ts
+      entry: handler.ts
       routes: []
       memory: 512
 `)
@@ -159,10 +170,77 @@ backend:
   runtime: bun
   entries:
     api:
-      handler: handler.ts
+      entry: handler.ts
       routes: []
       description: "some desc"
 `);
     expect(r.warnings.some((w) => w.includes("description"))).toBe(true);
+  });
+
+  test("rejects deploy-time parameters in frontend.entries", () => {
+    expect(() =>
+      parseCellYaml(`
+name: x
+params: []
+frontend:
+  entries:
+    web:
+      entry: index.ts
+      routes: []
+      timeout: 30
+`)
+    ).toThrow(/timeout.*deploy-time/);
+  });
+
+  test("rejects memory in frontend.entries", () => {
+    expect(() =>
+      parseCellYaml(`
+name: x
+params: []
+frontend:
+  entries:
+    web:
+      entry: index.ts
+      memory: 512
+`)
+    ).toThrow(/memory.*deploy-time/);
+  });
+
+  test("warns unknown keys in frontend.entries", () => {
+    const r = parseCellYaml(`
+name: x
+params: []
+frontend:
+  entries:
+    web:
+      entry: index.ts
+      routes: []
+      label: "some label"
+`);
+    expect(r.warnings.some((w) => w.includes("label") && w.includes("frontend"))).toBe(true);
+  });
+
+  test("rejects non-string variable values", () => {
+    expect(() =>
+      parseCellYaml(`
+name: x
+params: []
+variables:
+  PORT: 3000
+`)
+    ).toThrow(/variables\.PORT must be a string/);
+  });
+
+  test("rejects array variable values", () => {
+    expect(() =>
+      parseCellYaml(`
+name: x
+params: []
+variables:
+  ITEMS:
+    - a
+    - b
+`)
+    ).toThrow(/variables\.ITEMS must be a string/);
   });
 });

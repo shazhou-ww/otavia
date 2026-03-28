@@ -20,7 +20,7 @@ export type StackCellModel = {
   cellVariableValues: Record<string, string>;
   backend?: unknown;
   frontend?: unknown;
-  /** Merged deploy params: otavia.yaml defaults ← per-cell overrides. */
+  /** Merged deploy params: otavia.yaml base deploy ← per-cell overrides. */
   deploy?: DeployParams;
 };
 
@@ -38,7 +38,7 @@ export type StackModel = {
   cells: Record<string, StackCellModel>;
   /** Logical table id → key attribute names (empty if not declared). */
   resourceTables: Record<string, StackResourceTable>;
-  /** Stack-level deploy defaults from otavia.yaml `defaults`. */
-  defaults?: DeployParams;
+  /** Stack-level base deploy params from otavia.yaml `deploy`. */
+  deploy?: DeployParams;
   warnings: string[];
 };

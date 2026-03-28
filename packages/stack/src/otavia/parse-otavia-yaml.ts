@@ -2,13 +2,13 @@ import type { CloudProvider, StackResourceTable } from "../types.js";
 import { parseYamlWithOtaviaTags } from "../yaml/load-yaml.js";
 import { validateOtaviaTagZones } from "./validate-otavia-tag-zones.js";
 
-const KNOWN_TOP_LEVEL = new Set(["name", "cloud", "variables", "cells", "domain", "resources", "defaults"]);
+const KNOWN_TOP_LEVEL = new Set(["name", "cloud", "variables", "cells", "domain", "resources", "deploy"]);
 
 const DEFAULT_SCOPE = "@otavia";
 
-const KNOWN_CELL_KEYS = new Set(["package", "mount", "params"]);
+const KNOWN_CELL_KEYS = new Set(["package", "mount", "params", "deploy"]);
 
-export type DeployParams = { timeout?: number; memory?: number; [key: string]: unknown };
+export type DeployParams = { timeout?: number; memory?: number; runtime?: string; [key: string]: unknown };
 
 export type OtaviaCellsListItem = {
   mount: string;
@@ -24,7 +24,7 @@ export type ParsedOtaviaYaml = {
   /** mount -> package name */
   cells: Record<string, string>;
   cellsList: OtaviaCellsListItem[];
-  defaults?: DeployParams;
+  deploy?: DeployParams;
   cellOverrides?: Record<string, DeployParams>;
   domain?: Record<string, unknown>;
   /** `resources.tables` — logical id → partition/sort attribute names (v1: string keys only). */
@@ -47,9 +47,12 @@ function validateDeployParams(obj: Record<string, unknown>, pathLabel: string): 
   if (obj.memory != null && typeof obj.memory !== "number") {
     throw new Error(`${pathLabel}.memory must be a number`);
   }
+  if (obj.runtime != null && typeof obj.runtime !== "string") {
+    throw new Error(`${pathLabel}.runtime must be a string`);
+  }
 }
 
-function parseDefaults(data: unknown, pathLabel: string): DeployParams | undefined {
+function parseDeploy(data: unknown, pathLabel: string): DeployParams | undefined {
   if (data == null) return undefined;
   if (typeof data !== "object" || Array.isArray(data)) {
     throw new Error(`${pathLabel} must be an object`);
@@ -63,16 +66,13 @@ function extractDeployParams(
   record: Record<string, unknown>,
   pathLabel: string
 ): DeployParams | undefined {
-  const deploy: Record<string, unknown> = {};
-  let found = false;
-  for (const [key, value] of Object.entries(record)) {
-    if (!KNOWN_CELL_KEYS.has(key)) {
-      deploy[key] = value;
-      found = true;
-    }
+  const raw = record.deploy;
+  if (raw == null) return undefined;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error(`${pathLabel}.deploy must be an object`);
   }
-  if (!found) return undefined;
-  validateDeployParams(deploy, pathLabel);
+  const deploy = raw as Record<string, unknown>;
+  validateDeployParams(deploy, `${pathLabel}.deploy`);
   return deploy as DeployParams;
 }
 
@@ -285,7 +285,7 @@ export function parseOtaviaYaml(content: string): ParsedOtaviaYaml {
     variables = data.variables as Record<string, unknown>;
   }
 
-  const defaults = parseDefaults(data.defaults, 'otavia.yaml: "defaults"');
+  const deploy = parseDeploy(data.deploy, 'otavia.yaml: "deploy"');
 
   const { cells, cellsList } = parseCells(data.cells);
 
@@ -318,7 +318,7 @@ export function parseOtaviaYaml(content: string): ParsedOtaviaYaml {
     variables,
     cells,
     cellsList,
-    defaults,
+    deploy,
     ...(Object.keys(cellOverrides).length > 0 ? { cellOverrides } : {}),
     domain,
     resourceTables,

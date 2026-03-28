@@ -43,7 +43,7 @@ export type MainDevGeneratedConfig = {
 };
 
 type CellYamlShape = {
-  backend?: { entries?: Record<string, { routes?: string[]; handler?: string }> };
+  backend?: { entries?: Record<string, { routes?: string[]; entry?: string }> };
   frontend?: { dir: string; entries: Record<string, { entry: string; routes?: string[] }> };
 };
 

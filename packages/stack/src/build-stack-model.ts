@@ -51,8 +51,8 @@ function normalizeBackendEntries(
   for (const ent of Object.values(entries as Record<string, unknown>)) {
     if (ent && typeof ent === "object" && !Array.isArray(ent)) {
       const e = ent as Record<string, unknown>;
-      if (typeof e.handler === "string") {
-        e.handler = toPosixPathRelativeToStack(stackRootAbs, resolve(cellRootAbs, e.handler));
+      if (typeof e.entry === "string") {
+        e.entry = toPosixPathRelativeToStack(stackRootAbs, resolve(cellRootAbs, e.entry));
       }
     }
   }
@@ -94,11 +94,11 @@ function normalizeCellConfigPaths(
 }
 
 function mergeDeployParams(
-  defaults: DeployParams | undefined,
+  baseDeploy: DeployParams | undefined,
   cellOverride: DeployParams | undefined
 ): DeployParams | undefined {
-  if (defaults == null && cellOverride == null) return undefined;
-  return { ...defaults, ...cellOverride };
+  if (baseDeploy == null && cellOverride == null) return undefined;
+  return { ...baseDeploy, ...cellOverride };
 }
 
 function assertDeclaredCellParams(
@@ -161,7 +161,7 @@ export function buildStackModel(input: {
       stackRootAbs
     );
 
-    const cellDeploy = mergeDeployParams(parsed.defaults, item.deploy);
+    const cellDeploy = mergeDeployParams(parsed.deploy, item.deploy);
 
     cells[item.mount] = {
       mount: item.mount,
@@ -188,7 +188,7 @@ export function buildStackModel(input: {
     cellMountOrder,
     cells,
     resourceTables: parsed.resourceTables,
-    ...(parsed.defaults ? { defaults: parsed.defaults } : {}),
+    ...(parsed.deploy ? { deploy: parsed.deploy } : {}),
     warnings,
   };
 }

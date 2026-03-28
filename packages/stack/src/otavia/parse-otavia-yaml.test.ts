@@ -148,6 +148,194 @@ cells:
 `)
     ).toThrow(/cloud\.provider must be "aws"/);
   });
+
+  test("parses top-level deploy params", () => {
+    const r = parseOtaviaYaml(`
+name: demo
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  hello: "@acme/hello"
+deploy:
+  timeout: 30
+  memory: 512
+  runtime: bun
+`);
+    expect(r.deploy).toEqual({ timeout: 30, memory: 512, runtime: "bun" });
+    expect(r.warnings).toEqual([]);
+  });
+
+  test("deploy is undefined when omitted", () => {
+    const r = parseOtaviaYaml(MINIMAL);
+    expect(r.deploy).toBeUndefined();
+  });
+
+  test("rejects non-object deploy", () => {
+    expect(() =>
+      parseOtaviaYaml(`
+name: x
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  h: "@a/b"
+deploy: 42
+`)
+    ).toThrow(/must be an object/);
+  });
+
+  test("rejects non-number deploy.timeout", () => {
+    expect(() =>
+      parseOtaviaYaml(`
+name: x
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  h: "@a/b"
+deploy:
+  timeout: fast
+`)
+    ).toThrow(/timeout must be a number/);
+  });
+
+  test("rejects non-number deploy.memory", () => {
+    expect(() =>
+      parseOtaviaYaml(`
+name: x
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  h: "@a/b"
+deploy:
+  memory: big
+`)
+    ).toThrow(/memory must be a number/);
+  });
+
+  test("rejects non-string deploy.runtime", () => {
+    expect(() =>
+      parseOtaviaYaml(`
+name: x
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  h: "@a/b"
+deploy:
+  runtime: 123
+`)
+    ).toThrow(/runtime must be a string/);
+  });
+
+  test("cells Record format with string values", () => {
+    const r = parseOtaviaYaml(`
+name: x
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  api: "@acme/api"
+  web: "@acme/web"
+`);
+    expect(r.cells).toEqual({ api: "@acme/api", web: "@acme/web" });
+    expect(r.cellsList).toEqual([
+      { mount: "api", package: "@acme/api" },
+      { mount: "web", package: "@acme/web" },
+    ]);
+  });
+
+  test("cells Record format with object values and deploy", () => {
+    const r = parseOtaviaYaml(`
+name: x
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  api:
+    package: "@acme/api"
+    params:
+      port: 3000
+    deploy:
+      timeout: 60
+      memory: 1024
+`);
+    expect(r.cells).toEqual({ api: "@acme/api" });
+    expect(r.cellsList).toEqual([
+      { mount: "api", package: "@acme/api", params: { port: 3000 }, deploy: { timeout: 60, memory: 1024 } },
+    ]);
+    expect(r.cellOverrides).toEqual({ api: { timeout: 60, memory: 1024 } });
+  });
+
+  test("cells Record format mixed string and object entries", () => {
+    const r = parseOtaviaYaml(`
+name: x
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  api:
+    package: "@acme/api"
+    deploy:
+      runtime: bun
+  web: "@acme/web"
+`);
+    expect(r.cells).toEqual({ api: "@acme/api", web: "@acme/web" });
+    expect(r.cellsList).toHaveLength(2);
+    expect(r.cellsList[0]?.deploy).toEqual({ runtime: "bun" });
+    expect(r.cellsList[1]?.deploy).toBeUndefined();
+    expect(r.cellOverrides).toEqual({ api: { runtime: "bun" } });
+  });
+
+  test("cellOverrides absent when no cell has deploy", () => {
+    const r = parseOtaviaYaml(MINIMAL);
+    expect(r.cellOverrides).toBeUndefined();
+  });
+
+  test("cells array format with deploy", () => {
+    const r = parseOtaviaYaml(`
+name: x
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  - package: "@acme/api"
+    mount: api
+    deploy:
+      timeout: 10
+`);
+    expect(r.cells).toEqual({ api: "@acme/api" });
+    expect(r.cellsList[0]?.deploy).toEqual({ timeout: 10 });
+    expect(r.cellOverrides).toEqual({ api: { timeout: 10 } });
+  });
+
+  test("cells array format string shorthand", () => {
+    const r = parseOtaviaYaml(`
+name: x
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  - hello
+`);
+    expect(r.cells).toEqual({ hello: "@otavia/hello" });
+    expect(r.cellsList).toEqual([{ mount: "hello", package: "@otavia/hello" }]);
+  });
+
+  test("rejects non-object cell deploy", () => {
+    expect(() =>
+      parseOtaviaYaml(`
+name: x
+cloud: { provider: aws, region: us-east-1 }
+cells:
+  api:
+    package: "@a/b"
+    deploy: 99
+`)
+    ).toThrow(/deploy must be an object/);
+  });
+
+  test("rejects empty cells object", () => {
+    expect(() =>
+      parseOtaviaYaml(`
+name: x
+cloud: { provider: aws, region: us-east-1 }
+cells: {}
+`)
+    ).toThrow(/at least one entry/);
+  });
+
+  test("rejects empty cells array", () => {
+    expect(() =>
+      parseOtaviaYaml(`
+name: x
+cloud: { provider: aws, region: us-east-1 }
+cells: []
+`)
+    ).toThrow(/non-empty/);
+  });
 });
 
 describe("providerKind", () => {

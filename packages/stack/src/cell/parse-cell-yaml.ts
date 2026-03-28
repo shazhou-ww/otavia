@@ -1,7 +1,7 @@
 import { isEnvRef, isSecretRef } from "../yaml/tags.js";
 import { parseYamlWithOtaviaTags } from "../yaml/load-yaml.js";
 
-const KNOWN_TOP_LEVEL = new Set(["name", "params", "backend", "frontend", "tables", "oauth"]);
+const KNOWN_TOP_LEVEL = new Set(["name", "params", "backend", "frontend", "tables", "oauth", "variables", "buckets", "testing"]);
 
 function assertNoEnvOrSecretInTree(node: unknown, path: string): void {
   if (node === null || node === undefined) return;
@@ -28,15 +28,22 @@ export type ParsedCellYaml = {
   backend?: Record<string, unknown>;
   frontend?: Record<string, unknown>;
   tables?: Record<string, unknown>;
-  oauth?: Record<string, unknown>;
+  oauth?: { scopes: string[] };
+  variables?: Record<string, string>;
+  buckets?: Record<string, unknown>;
+  testing?: Record<string, unknown>;
   warnings: string[];
 };
 
 const DEPLOY_ONLY_KEYS = new Set(["timeout", "memory", "memorySize", "concurrency", "layers", "vpc"]);
-const ALLOWED_ENTRY_KEYS = new Set(["handler", "routes"]);
+const ALLOWED_ENTRY_KEYS = new Set(["entry", "routes"]);
 
-function validateBackendEntries(backend: Record<string, unknown>, warnings: string[]): void {
-  const entries = backend.entries;
+function validateEntries(
+  section: "backend" | "frontend",
+  obj: Record<string, unknown>,
+  warnings: string[]
+): void {
+  const entries = obj.entries;
   if (entries == null) return;
   if (typeof entries !== "object" || Array.isArray(entries)) return;
   for (const [entryName, entryVal] of Object.entries(entries as Record<string, unknown>)) {
@@ -44,12 +51,12 @@ function validateBackendEntries(backend: Record<string, unknown>, warnings: stri
     for (const key of Object.keys(entryVal as Record<string, unknown>)) {
       if (DEPLOY_ONLY_KEYS.has(key)) {
         throw new Error(
-          `cell.yaml: backend.entries.${entryName}.${key} is a deploy-time parameter and must not appear in cell.yaml`
+          `cell.yaml: ${section}.entries.${entryName}.${key} is a deploy-time parameter and must not appear in cell.yaml`
         );
       }
       if (!ALLOWED_ENTRY_KEYS.has(key)) {
         warnings.push(
-          `backend.entries.${entryName}: unknown key "${key}" (only handler and routes are allowed)`
+          `${section}.entries.${entryName}: unknown key "${key}" (only entry and routes are allowed)`
         );
       }
     }
@@ -100,7 +107,10 @@ export function parseCellYaml(content: string): ParsedCellYaml {
       throw new Error("cell.yaml: 'backend' must be an object when present");
     }
     backend = data.backend as Record<string, unknown>;
-    validateBackendEntries(backend, warnings);
+    if (backend.dir != null && typeof backend.dir !== "string") {
+      throw new Error("cell.yaml: 'backend.dir' must be a string when present");
+    }
+    validateEntries("backend", backend, warnings);
   }
 
   let frontend: Record<string, unknown> | undefined;
@@ -109,6 +119,7 @@ export function parseCellYaml(content: string): ParsedCellYaml {
       throw new Error("cell.yaml: 'frontend' must be an object when present");
     }
     frontend = data.frontend as Record<string, unknown>;
+    validateEntries("frontend", frontend, warnings);
   }
 
   let tables: Record<string, unknown> | undefined;
@@ -119,12 +130,55 @@ export function parseCellYaml(content: string): ParsedCellYaml {
     tables = data.tables as Record<string, unknown>;
   }
 
-  let oauth: Record<string, unknown> | undefined;
+  let oauth: { scopes: string[] } | undefined;
   if (data.oauth != null) {
     if (typeof data.oauth !== "object" || Array.isArray(data.oauth)) {
       throw new Error("cell.yaml: 'oauth' must be an object when present");
     }
-    oauth = data.oauth as Record<string, unknown>;
+    const oauthData = data.oauth as Record<string, unknown>;
+    if (!Array.isArray(oauthData.scopes)) {
+      throw new Error("cell.yaml: 'oauth.scopes' must be an array of strings");
+    }
+    for (let i = 0; i < oauthData.scopes.length; i++) {
+      if (typeof oauthData.scopes[i] !== "string") {
+        throw new Error(`cell.yaml: oauth.scopes[${i}] must be a string`);
+      }
+    }
+    const unknownOauthKeys = Object.keys(oauthData).filter((k) => k !== "scopes");
+    for (const k of unknownOauthKeys) {
+      warnings.push(`oauth: unknown key "${k}" (only scopes is allowed)`);
+    }
+    oauth = { scopes: oauthData.scopes as string[] };
+  }
+
+  let variables: Record<string, string> | undefined;
+  if (data.variables != null) {
+    if (typeof data.variables !== "object" || Array.isArray(data.variables)) {
+      throw new Error("cell.yaml: 'variables' must be an object when present");
+    }
+    const rawVars = data.variables as Record<string, unknown>;
+    for (const [k, v] of Object.entries(rawVars)) {
+      if (typeof v !== "string") {
+        throw new Error(`cell.yaml: variables.${k} must be a string`);
+      }
+    }
+    variables = rawVars as Record<string, string>;
+  }
+
+  let buckets: Record<string, unknown> | undefined;
+  if (data.buckets != null) {
+    if (typeof data.buckets !== "object" || Array.isArray(data.buckets)) {
+      throw new Error("cell.yaml: 'buckets' must be an object when present");
+    }
+    buckets = data.buckets as Record<string, unknown>;
+  }
+
+  let testing: Record<string, unknown> | undefined;
+  if (data.testing != null) {
+    if (typeof data.testing !== "object" || Array.isArray(data.testing)) {
+      throw new Error("cell.yaml: 'testing' must be an object when present");
+    }
+    testing = data.testing as Record<string, unknown>;
   }
 
   return {
@@ -134,6 +188,9 @@ export function parseCellYaml(content: string): ParsedCellYaml {
     frontend,
     tables,
     oauth,
+    variables,
+    buckets,
+    testing,
     warnings,
   };
 }
