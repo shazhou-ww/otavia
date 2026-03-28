@@ -1,6 +1,6 @@
 {
   "name": "@otavia/host-aws",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "AWS host implementation (scaffold)",
   "type": "module",
   "types": "./dist/index.d.ts",
@@ -19,7 +19,7 @@
     "test": "bun test src/"
   },
   "dependencies": {
-    "@otavia/host-contract": "workspace:*"
+    "@otavia/host-contract": "^0.0.2"
   },
   "devDependencies": {
     "@types/bun": "^1.3.11",

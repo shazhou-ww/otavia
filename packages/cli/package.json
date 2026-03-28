@@ -1,6 +1,6 @@
 {
   "name": "@otavia/cli",
-  "version": "0.0.1",
+  "version": "0.0.6",
   "description": "Otavia CLI (AWS-only)",
   "type": "module",
   "types": "./dist/cli.d.ts",
@@ -21,7 +21,7 @@
       "import": "./dist/dev/main-frontend-runtime/vite-config.js"
     }
   },
-  "files": ["dist", "src"],
+  "files": ["dist", "src", "assets"],
   "scripts": {
     "build": "bun run build:js && bun run build:types",
     "build:js": "bun build ./src/cli.ts ./src/dev/main-frontend-runtime/main-entry.ts ./src/dev/main-frontend-runtime/vite-config.ts --outdir dist --target node --format esm --packages external",
@@ -31,9 +31,9 @@
     "test": "bun test src/"
   },
   "dependencies": {
-    "@otavia/host-aws": "workspace:*",
-    "@otavia/host-contract": "workspace:*",
-    "@otavia/stack": "workspace:*",
+    "@otavia/host-aws": "^0.0.2",
+    "@otavia/host-contract": "^0.0.2",
+    "@otavia/stack": "^0.0.2",
     "@vitejs/plugin-react": "^4.3.4",
     "commander": "^12.1.0",
     "hono": "^4.6.16",

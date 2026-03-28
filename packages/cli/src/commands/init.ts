@@ -3,8 +3,9 @@ import { cp, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const commandsDir = dirname(fileURLToPath(import.meta.url));
-const templateRoot = join(commandsDir, "../../assets/templates/init");
+import { getCliPackageRoot } from "../templates/resolve-cli-package-root.js";
+
+const templateRoot = join(getCliPackageRoot(), "assets", "templates", "init");
 
 /**
  * Use the scoped package name `@otavia/cli` (see `packages/cli/package.json` `"name"`).
