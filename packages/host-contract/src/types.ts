@@ -1,7 +1,7 @@
 /**
  * Discriminator for which host implementation is active (matches otavia.yaml `cloud.provider`).
  */
-export type ProviderId = "aws" | "azure";
+export type ProviderId = "aws";
 
 /** Declarative table (DynamoDB / Cosmos Table API) for deploy-time IaC and env injection. */
 export interface DeployResourceTable {
@@ -22,22 +22,17 @@ export interface DeployInput {
   /** Stack `name` from otavia.yaml. */
   stackName: string;
   /**
-   * Provider placement: AWS uses `region`, Azure uses `location` (spec §5.1).
-   * Caller must supply the correct shape for the active provider.
+   * Provider placement: AWS uses `region` (spec §5.1).
+   * Caller must supply the region for AWS.
    */
-  provider: { region?: string; location?: string };
+  provider: { region?: string };
   /** Resolved environment values for functions / app settings (from Stack `environments`). */
   environments: Record<string, string>;
   /**
-   * Secret bindings from Stack `secrets`; host maps to SSM, Key Vault, etc.
+   * Secret bindings from Stack `secrets`; host maps to SSM, etc.
    * Shape is intentionally loose at contract level — hosts narrow as needed.
    */
   secrets: Record<string, unknown>;
-  /**
-   * Azure: target resource group for `az deployment group create`.
-   * Required when deploying with {@link HostAdapter} `providerId` `"azure"`.
-   */
-  resourceGroup?: string;
   /** When set, hosts provision portable row-store tables and inject `OTAVIA_TABLE_*` settings. */
   resourceTables?: DeployResourceTable[];
 }

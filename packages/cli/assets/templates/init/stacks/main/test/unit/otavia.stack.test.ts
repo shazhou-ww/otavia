@@ -9,6 +9,6 @@ describe("stack (unit)", () => {
     const raw = readFileSync(join(stackRoot, "otavia.yaml"), "utf8");
     expect(raw).toMatch(/name:\s*main/);
     expect(raw).toMatch(/cloud:/);
-    expect(raw).toMatch(/provider:\s*(aws|azure)/);
+    expect(raw).toMatch(/provider:\s*aws/);
   });
 });

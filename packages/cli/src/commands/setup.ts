@@ -33,7 +33,7 @@ export async function copyEnvExampleIfMissing(stackRoot: string): Promise<boolea
 /**
  * `setup`: env bootstrap, `buildStackModel` (spec §6.2 incl. param keys), host toolchain check.
  * Uses the same `.env` / `.env.dev` chain as `dev` under **stack root** (`stacks/<name>/`).
- * When stdin is a TTY, prompts once to set `AWS_PROFILE` (AWS) or `AZURE_SUBSCRIPTION_ID` (Azure) in the stack `.env`.
+ * When stdin is a TTY, prompts once to set `AWS_PROFILE` (AWS) in the stack `.env`.
  * Skip with `OTAVIA_SETUP_SKIP_CLOUD_IDENTITY=1` or non-interactive stdin.
  */
 export async function runSetup(cwdInput: string = cwd()): Promise<void> {
@@ -55,7 +55,7 @@ export async function runSetup(cwdInput: string = cwd()): Promise<void> {
     console.warn(`[otavia] ${w}`);
   }
 
-  await promptAndWriteCloudIdentity(stackRoot, model.cloud.provider);
+  await promptAndWriteCloudIdentity(stackRoot);
 
   const host = createHostAdapterForCloud(model.cloud);
   if (process.env.OTAVIA_SETUP_SKIP_TOOLCHAIN === "1") {

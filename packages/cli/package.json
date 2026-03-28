@@ -1,7 +1,7 @@
 {
   "name": "@otavia/cli",
   "version": "0.0.1",
-  "description": "Otavia multicloud CLI (scaffold)",
+  "description": "Otavia CLI (AWS-only)",
   "type": "module",
   "bin": {
     "otavia": "src/cli.ts"
@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "@otavia/host-aws": "workspace:*",
-    "@otavia/host-azure": "workspace:*",
     "@otavia/host-contract": "workspace:*",
     "@otavia/runtime-contract": "workspace:*",
     "@otavia/stack": "workspace:*",

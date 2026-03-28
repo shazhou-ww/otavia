@@ -1,4 +1,4 @@
-// Optional: depend on `@otavia/runtime-aws` or `@otavia/runtime-azure` and call `platform()`.
+// Optional: depend on `@otavia/runtime-aws` and call `platform()`.
 // import type { CloudPlatform } from "@otavia/runtime-contract";
 // import { platform } from "@otavia/runtime-aws";
 

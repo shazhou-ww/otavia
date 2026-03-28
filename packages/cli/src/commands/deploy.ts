@@ -17,8 +17,7 @@ export function deployInputFromStackModel(model: StackModel, stackRootAbs: strin
   const secrets: Record<string, unknown> = Object.fromEntries(
     model.secrets.map((s) => [s.secretName, { logicalKey: s.logicalKey }])
   );
-  const region = model.cloud.provider === "aws" ? model.cloud.region : undefined;
-  const location = model.cloud.provider === "azure" ? model.cloud.location : undefined;
+  const region = model.cloud.region;
   const tables = model.resourceTables ?? {};
   const resourceTables =
     Object.keys(tables).length === 0
@@ -32,10 +31,9 @@ export function deployInputFromStackModel(model: StackModel, stackRootAbs: strin
   return {
     stackRoot: stackRootAbs,
     stackName: model.name,
-    provider: { region, location },
+    provider: { region },
     environments,
     secrets,
-    resourceGroup: process.env.OTAVIA_AZURE_RESOURCE_GROUP,
     resourceTables,
   };
 }
@@ -58,9 +56,6 @@ export async function runDeploy(cwdInput: string = cwd()): Promise<void> {
   await host.checkCredentials();
 
   const input = deployInputFromStackModel(model, stackRoot);
-  if (host.providerId === "azure" && (input.resourceGroup == null || input.resourceGroup.trim() === "")) {
-    throw new Error("Azure deploy requires OTAVIA_AZURE_RESOURCE_GROUP in the environment.");
-  }
 
   await host.deployStack(input);
 }

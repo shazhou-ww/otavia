@@ -53,22 +53,11 @@ async function writeStackPackageJson(stackMain: string, useGlobalOtavia: boolean
   await writeFile(stackPkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
 }
 
-function otaviaYaml(provider: "aws" | "azure"): string {
-  if (provider === "aws") {
-    return `name: main
-cloud:
-  provider: aws
-  region: us-east-1
-variables: {}
-cells:
-  - mount: hello
-    package: "@demo/hello"
-`;
-  }
+function otaviaYaml(region: string): string {
   return `name: main
 cloud:
-  provider: azure
-  location: eastus
+  provider: aws
+  region: ${region}
 variables: {}
 cells:
   - mount: hello
@@ -78,7 +67,7 @@ cells:
 
 export async function runInit(
   targetDir: string,
-  options: { provider: "aws" | "azure"; useGlobalOtavia?: boolean }
+  options: { region: string; useGlobalOtavia?: boolean }
 ): Promise<void> {
   const abs = resolve(targetDir);
   await mkdir(abs, { recursive: true });
@@ -91,6 +80,6 @@ export async function runInit(
   if (!existsSync(stackMain)) {
     throw new Error(`Init template missing stacks/main under ${abs}`);
   }
-  await writeFile(join(stackMain, "otavia.yaml"), otaviaYaml(options.provider), "utf8");
+  await writeFile(join(stackMain, "otavia.yaml"), otaviaYaml(options.region), "utf8");
   await writeStackPackageJson(stackMain, options.useGlobalOtavia === true);
 }

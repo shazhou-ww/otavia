@@ -113,8 +113,8 @@ function parseCells(data: unknown): { cells: Record<string, string>; cellsList: 
   throw new Error("otavia.yaml: cells must be an array or an object");
 }
 
-export function providerKind(cloud: CloudProvider): "aws" | "azure" {
-  return cloud.provider;
+export function providerKind(cloud: CloudProvider): "aws" {
+  return "aws";
 }
 
 function parseCloud(data: Record<string, unknown>): CloudProvider {
@@ -124,29 +124,18 @@ function parseCloud(data: Record<string, unknown>): CloudProvider {
   }
   const o = v as Record<string, unknown>;
   const id = o.provider;
-  if (id !== "aws" && id !== "azure") {
-    throw new Error('otavia.yaml: cloud.provider must be "aws" or "azure"');
-  }
-  if (id === "aws") {
-    const region = typeof o.region === "string" ? o.region.trim() : "";
-    if (!region) {
-      throw new Error('otavia.yaml: cloud (aws) must include non-empty "region"');
-    }
-    const location = typeof o.location === "string" ? o.location.trim() : "";
-    if (location) {
-      throw new Error('otavia.yaml: cloud must not set "location" when provider is "aws"');
-    }
-    return { provider: "aws", region };
-  }
-  const location = typeof o.location === "string" ? o.location.trim() : "";
-  if (!location) {
-    throw new Error('otavia.yaml: cloud (azure) must include non-empty "location"');
+  if (id !== "aws") {
+    throw new Error('otavia.yaml: cloud.provider must be "aws"');
   }
   const region = typeof o.region === "string" ? o.region.trim() : "";
-  if (region) {
-    throw new Error('otavia.yaml: cloud must not set "region" when provider is "azure"');
+  if (!region) {
+    throw new Error('otavia.yaml: cloud (aws) must include non-empty "region"');
   }
-  return { provider: "azure", location };
+  const location = typeof o.location === "string" ? o.location.trim() : "";
+  if (location) {
+    throw new Error('otavia.yaml: cloud must not set "location" when provider is "aws"');
+  }
+  return { provider: "aws", region };
 }
 
 const ATTR_NAME = /^[a-zA-Z_][a-zA-Z0-9_]*$/;

@@ -6,10 +6,9 @@ export type StackResourceTable = {
   rowKey: string;
 };
 
-/** Discriminated union for `otavia.yaml` `cloud` (MVP: aws | azure). */
+/** AWS cloud configuration for `otavia.yaml` `cloud`. */
 export type CloudAws = { provider: "aws"; region: string };
-export type CloudAzure = { provider: "azure"; location: string };
-export type CloudProvider = CloudAws | CloudAzure;
+export type CloudProvider = CloudAws;
 
 export type StackCellModel = {
   mount: string;
@@ -26,7 +25,7 @@ export type StackModel = {
   stackRootAbs: string;
   workspaceRootAbs: string;
   name: string;
-  providerKind: "aws" | "azure";
+  providerKind: "aws";
   cloud: CloudProvider;
   topLevelVariableValues: Record<string, string>;
   environments: VariableEnvBinding[];

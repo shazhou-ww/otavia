@@ -6,12 +6,8 @@ import { mergeProcessAndFileEnv } from "../env/merge-process-env.js";
 import { findStackRoot } from "../resolve/find-stack-root.js";
 import { findWorkspaceRoot } from "../resolve/find-workspace-root.js";
 
-function spawnCloud(
-  executable: string,
-  args: string[],
-  env: Record<string, string>
-): { status: number | null } {
-  return spawnSync(executable, args, {
+function spawnAws(args: string[], env: Record<string, string>): { status: number | null } {
+  return spawnSync("aws", args, {
     stdio: "inherit",
     shell: process.platform === "win32",
     env: env as NodeJS.ProcessEnv,
@@ -19,7 +15,7 @@ function spawnCloud(
 }
 
 /**
- * Run `aws sso login` or `az login` using stack `.env` / `.env.dev` (e.g. `AWS_PROFILE`, `AZURE_SUBSCRIPTION_ID`).
+ * Run `aws sso login` using stack `.env` / `.env.dev` (e.g. `AWS_PROFILE`).
  */
 export function runCloudLogin(cwdInput: string = cwd()): number {
   const workspaceRoot = findWorkspaceRoot(cwdInput);
@@ -40,24 +36,13 @@ export function runCloudLogin(cwdInput: string = cwd()): number {
     return 1;
   }
 
-  if (model.cloud.provider === "aws") {
-    const r = spawnCloud("aws", ["sso", "login"], merged);
-    return r.status ?? 1;
-  }
-
-  const r = spawnCloud("az", ["login"], merged);
-  if ((r.status ?? 1) !== 0) return r.status ?? 1;
-
-  const sub = merged.AZURE_SUBSCRIPTION_ID?.trim();
-  if (sub) {
-    const r2 = spawnCloud("az", ["account", "set", "--subscription", sub], merged);
-    return r2.status ?? 1;
-  }
-  return 0;
+  // Only AWS is supported
+  const r = spawnAws(["sso", "login"], merged);
+  return r.status ?? 1;
 }
 
 /**
- * Run `aws sso logout` or `az logout` with the same env as login.
+ * Run `aws sso logout` with the same env as login.
  */
 export function runCloudLogout(cwdInput: string = cwd()): number {
   const workspaceRoot = findWorkspaceRoot(cwdInput);
@@ -78,11 +63,7 @@ export function runCloudLogout(cwdInput: string = cwd()): number {
     return 1;
   }
 
-  if (model.cloud.provider === "aws") {
-    const r = spawnCloud("aws", ["sso", "logout"], merged);
-    return r.status ?? 1;
-  }
-
-  const r = spawnCloud("az", ["logout"], merged);
+  // Only AWS is supported
+  const r = spawnAws(["sso", "logout"], merged);
   return r.status ?? 1;
 }

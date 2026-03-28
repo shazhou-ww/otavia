@@ -8,7 +8,7 @@ describe("runInit", () => {
   test("scaffold aws workspace with otavia.yaml region", async () => {
     const dir = await mkdtemp(join(tmpdir(), "otavia-init-"));
     try {
-      await runInit(dir, { provider: "aws" });
+      await runInit(dir, { region: "us-east-1" });
       const yaml = await readFile(join(dir, "stacks", "main", "otavia.yaml"), "utf8");
       expect(yaml).toContain("cloud:");
       expect(yaml).toContain("provider: aws");
@@ -42,7 +42,7 @@ describe("runInit", () => {
   test("useGlobalOtavia omits @otavia/cli devDependency and uses plain otavia in scripts", async () => {
     const dir = await mkdtemp(join(tmpdir(), "otavia-init-"));
     try {
-      await runInit(dir, { provider: "aws", useGlobalOtavia: true });
+      await runInit(dir, { region: "us-east-1", useGlobalOtavia: true });
       const stackPkg = JSON.parse(
         await readFile(join(dir, "stacks", "main", "package.json"), "utf8")
       ) as { scripts?: Record<string, string>; devDependencies?: Record<string, string> };
@@ -52,20 +52,6 @@ describe("runInit", () => {
       expect(stackPkg.scripts?.["cloud:logout"]).toBe("otavia cloud logout");
       expect(stackPkg.scripts?.["test:all"]).toBe("otavia test");
       expect(stackPkg.devDependencies?.typescript).toBe("^5.8.3");
-    } finally {
-      await rm(dir, { recursive: true, force: true });
-    }
-  });
-
-  test("scaffold azure workspace with location", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "otavia-init-"));
-    try {
-      await runInit(dir, { provider: "azure" });
-      const yaml = await readFile(join(dir, "stacks", "main", "otavia.yaml"), "utf8");
-      expect(yaml).toContain("cloud:");
-      expect(yaml).toContain("provider: azure");
-      expect(yaml).toContain("location:");
-      expect(yaml).not.toContain("region:");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

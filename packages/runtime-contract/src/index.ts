@@ -1,4 +1,4 @@
-export type CloudPlatform = "aws" | "azure";
+export type CloudPlatform = "aws";
 
 export {
   isSafeTableNumber,

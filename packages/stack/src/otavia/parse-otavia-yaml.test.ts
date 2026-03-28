@@ -120,20 +120,6 @@ cells:
     ).toThrow(/!Env and !Secret/);
   });
 
-  test("accepts Azure cloud", () => {
-    const r = parseOtaviaYaml(`
-name: x
-cloud:
-  provider: azure
-  location: eastus
-variables: {}
-cells:
-  h: "@a/b"
-`);
-    expect(r.cloud).toEqual({ provider: "azure", location: "eastus" });
-    expect(providerKind(r.cloud)).toBe("azure");
-  });
-
   test("rejects aws cloud with location set", () => {
     expect(() =>
       parseOtaviaYaml(`
@@ -149,21 +135,6 @@ cells:
     ).toThrow(/must not set "location"/);
   });
 
-  test("rejects azure cloud with region set", () => {
-    expect(() =>
-      parseOtaviaYaml(`
-name: x
-cloud:
-  provider: azure
-  location: eastus
-  region: us-east-1
-variables: {}
-cells:
-  h: "@a/b"
-`)
-    ).toThrow(/must not set "region"/);
-  });
-
   test("rejects unknown cloud.provider", () => {
     expect(() =>
       parseOtaviaYaml(`
@@ -175,13 +146,12 @@ variables: {}
 cells:
   h: "@a/b"
 `)
-    ).toThrow(/cloud\.provider must be/);
+    ).toThrow(/cloud\.provider must be "aws"/);
   });
 });
 
 describe("providerKind", () => {
   test("returns discriminator", () => {
     expect(providerKind({ provider: "aws", region: "us-east-1" })).toBe("aws");
-    expect(providerKind({ provider: "azure", location: "eastus" })).toBe("azure");
   });
 });

@@ -32,7 +32,6 @@ export { buildStackModel } from "./build-stack-model.js";
 export { resolveCellPackageDir } from "./resolve/resolve-cell-package-dir.js";
 export type {
   CloudAws,
-  CloudAzure,
   CloudProvider,
   StackCellModel,
   StackModel,
