@@ -10,14 +10,14 @@
     },
     "packages/cli": {
       "name": "@otavia/cli",
-      "version": "0.0.1",
+      "version": "0.0.6",
       "bin": {
-        "otavia": "src/cli.ts",
+        "otavia": "dist/cli.js",
       },
       "dependencies": {
-        "@otavia/host-aws": "workspace:*",
-        "@otavia/host-contract": "workspace:*",
-        "@otavia/stack": "workspace:*",
+        "@otavia/host-aws": "^0.0.2",
+        "@otavia/host-contract": "^0.0.2",
+        "@otavia/stack": "^0.0.2",
         "@vitejs/plugin-react": "^4.3.4",
         "commander": "^12.1.0",
         "hono": "^4.6.16",
@@ -56,9 +56,9 @@
     },
     "packages/host-aws": {
       "name": "@otavia/host-aws",
-      "version": "0.0.1",
+      "version": "0.0.3",
       "dependencies": {
-        "@otavia/host-contract": "workspace:*",
+        "@otavia/host-contract": "^0.0.2",
       },
       "devDependencies": {
         "@types/bun": "^1.3.11",
@@ -68,7 +68,7 @@
     },
     "packages/host-contract": {
       "name": "@otavia/host-contract",
-      "version": "0.0.1",
+      "version": "0.0.3",
       "devDependencies": {
         "@types/bun": "^1.3.11",
         "@types/node": "^25.5.0",
@@ -77,7 +77,7 @@
     },
     "packages/stack": {
       "name": "@otavia/stack",
-      "version": "0.0.1",
+      "version": "0.0.3",
       "dependencies": {
         "yaml": "^2.5.0",
       },
@@ -613,7 +613,15 @@
 
     "@aws-crypto/util/@smithy/util-utf8": ["@smithy/util-utf8@2.3.0", "", { "dependencies": { "@smithy/util-buffer-from": "^2.2.0", "tslib": "^2.6.2" } }, "sha512-R8Rdn8Hy72KKcebgLiv8jQcQkXoLMOGGv5uI1/k0l+snqkOzQ1R0ChUBCxWMlBsFMekWjq0wRudIweFs7sKT5A=="],
 
+    "@otavia/cli/@otavia/host-aws": ["@otavia/host-aws@0.0.2", "", { "dependencies": { "@otavia/host-contract": "^0.0.1" } }, "sha512-Wfh32f96yzSZPBoRbeCaSKSR7PbFFpyLhYwhC/RTH8VhY6bqjz0mC/xCo5kvAVkhehrtvlbWV1YDDDyVy9UNLA=="],
+
+    "@otavia/cli/@otavia/host-contract": ["@otavia/host-contract@0.0.2", "", {}, "sha512-snkSqcRTDpMlJzeZDw8C8ViSpvoYbiVrGmmKaTw0PKoE4ev3/rOuhZO7vbEciSfMsyCnuMySB/FgvaSzYJFJpg=="],
+
+    "@otavia/cli/@otavia/stack": ["@otavia/stack@0.0.2", "", { "dependencies": { "yaml": "^2.5.0" } }, "sha512-tthMWE546JvyeQ9V0hglB98rcxugsLC2R/Nlt3djamKhIMW50AVjG/ApWwA7uoHPUIGELSUgq3QjgpZ/1XJzIQ=="],
+
     "@otavia/cli-legacy/vite": ["vite@7.3.1", "", { "dependencies": { "esbuild": "^0.27.0", "fdir": "^6.5.0", "picomatch": "^4.0.3", "postcss": "^8.5.6", "rollup": "^4.43.0", "tinyglobby": "^0.2.15" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "jiti": ">=1.21.0", "less": "^4.0.0", "lightningcss": "^1.21.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "jiti", "less", "lightningcss", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-w+N7Hifpc3gRjZ63vYBXA56dvvRlNWRczTdmCBBa+CotUzAPf5b7YMdMR/8CQoeYE5LX3W4wj6RYTgonm1b9DA=="],
+
+    "@otavia/host-aws/@otavia/host-contract": ["@otavia/host-contract@0.0.2", "", {}, "sha512-snkSqcRTDpMlJzeZDw8C8ViSpvoYbiVrGmmKaTw0PKoE4ev3/rOuhZO7vbEciSfMsyCnuMySB/FgvaSzYJFJpg=="],
 
     "chalk/supports-color": ["supports-color@7.2.0", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw=="],
 
@@ -626,6 +634,8 @@
     "@aws-crypto/util/@smithy/util-utf8/@smithy/util-buffer-from": ["@smithy/util-buffer-from@2.2.0", "", { "dependencies": { "@smithy/is-array-buffer": "^2.2.0", "tslib": "^2.6.2" } }, "sha512-IJdWBbTcMQ6DA0gdNhh/BwrLkDR+ADW5Kr1aZmd4k3DIF6ezMV4R2NIAmT08wQJ3yUK82thHWmC/TnK/wpMMIA=="],
 
     "@otavia/cli-legacy/vite/esbuild": ["esbuild@0.27.4", "", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.27.4", "@esbuild/android-arm": "0.27.4", "@esbuild/android-arm64": "0.27.4", "@esbuild/android-x64": "0.27.4", "@esbuild/darwin-arm64": "0.27.4", "@esbuild/darwin-x64": "0.27.4", "@esbuild/freebsd-arm64": "0.27.4", "@esbuild/freebsd-x64": "0.27.4", "@esbuild/linux-arm": "0.27.4", "@esbuild/linux-arm64": "0.27.4", "@esbuild/linux-ia32": "0.27.4", "@esbuild/linux-loong64": "0.27.4", "@esbuild/linux-mips64el": "0.27.4", "@esbuild/linux-ppc64": "0.27.4", "@esbuild/linux-riscv64": "0.27.4", "@esbuild/linux-s390x": "0.27.4", "@esbuild/linux-x64": "0.27.4", "@esbuild/netbsd-arm64": "0.27.4", "@esbuild/netbsd-x64": "0.27.4", "@esbuild/openbsd-arm64": "0.27.4", "@esbuild/openbsd-x64": "0.27.4", "@esbuild/openharmony-arm64": "0.27.4", "@esbuild/sunos-x64": "0.27.4", "@esbuild/win32-arm64": "0.27.4", "@esbuild/win32-ia32": "0.27.4", "@esbuild/win32-x64": "0.27.4" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-Rq4vbHnYkK5fws5NF7MYTU68FPRE1ajX7heQ/8QXXWqNgqqJ/GkmmyxIzUnf2Sr/bakf8l54716CcMGHYhMrrQ=="],
+
+    "@otavia/cli/@otavia/host-aws/@otavia/host-contract": ["@otavia/host-contract@0.0.1", "", {}, "sha512-JPeNDcmZ/tsOsg8SwcWOX7333NjOVXk/UI78i69EUoFRz8H5VLwGc4UB0U5nOQWhzDFZhTPwz2b5faoXrxKTjg=="],
 
     "vite/esbuild/@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.25.12", "", { "os": "aix", "cpu": "ppc64" }, "sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA=="],
 

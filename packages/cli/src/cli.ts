@@ -1,4 +1,7 @@
 #!/usr/bin/env bun
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { OtaviaCredentialUserError } from "@otavia/host-contract";
 import { Command } from "commander";
 import { runInit } from "./commands/init.js";
@@ -11,9 +14,24 @@ import { runTestCommand } from "./commands/test.js";
 import { runTypecheckCommand } from "./commands/typecheck.js";
 import { createHostAdapterForCloud } from "./host/create-host-adapter.js";
 
+function findPackageVersion(): string {
+  let dir = dirname(fileURLToPath(import.meta.url));
+  for (let i = 0; i < 5; i++) {
+    const candidate = resolve(dir, "package.json");
+    if (existsSync(candidate)) {
+      try {
+        const pkg = JSON.parse(readFileSync(candidate, "utf-8"));
+        if (pkg.name === "@otavia/cli" && pkg.version) return pkg.version;
+      } catch {}
+    }
+    dir = dirname(dir);
+  }
+  return "0.0.0";
+}
+
 const program = new Command();
 
-program.name("otavia").version("0.0.1");
+program.name("otavia").version(findPackageVersion());
 
 program
   .command("init")

@@ -10,6 +10,9 @@ describe("deployInputFromStackModel", () => {
       topLevelVariableValues: { "app.url": "https://x" },
       environments: [{ logicalKey: "app.url", envVarName: "APP_URL" }],
       secrets: [],
+      cellMountOrder: [],
+      cells: {},
+      resourceTables: {},
     } as unknown as StackModel;
     const input = deployInputFromStackModel(model, "/abs/stack");
     expect(input.stackRoot).toBe("/abs/stack");

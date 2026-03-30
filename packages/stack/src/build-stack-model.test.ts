@@ -27,6 +27,6 @@ describe("buildStackModel", () => {
 
     const be = hello.backend as Record<string, unknown>;
     const entries = be.entries as Record<string, Record<string, unknown>>;
-    expect(entries.api.handler).toBe("../../cells/hello/handler.ts");
+    expect(entries.api.entry).toBe("../../cells/hello/handler.ts");
   });
 });
