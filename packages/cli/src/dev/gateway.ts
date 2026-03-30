@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, watch, type FSWatcher } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Hono } from "hono";
@@ -13,6 +13,9 @@ type CellBackendConfig = {
   dir?: string;
   entries?: Record<string, { entry?: string; routes?: string[] }>;
 };
+
+/** Mutable cell app reference so Hono handlers always dispatch to the latest loaded version. */
+type CellAppRef = { current: HonoApp | null };
 
 function extractGatewayFactory(mod: Record<string, unknown>): CreateAppFactory | null {
   if (typeof mod?.createAppForBackend === "function") {
@@ -43,18 +46,27 @@ function buildBackendEntryCandidates(cell: StackCellModel): string[] {
   ];
 }
 
-async function loadCellGatewayApp(cell: StackCellModel): Promise<CreateAppFactory | null> {
-  try {
-    const mod = await import(`${cell.packageName}/backend`);
-    const factory = extractGatewayFactory(mod);
-    if (factory) return factory;
-  } catch {
-    /* try file paths */
+async function loadCellGatewayApp(
+  cell: StackCellModel,
+  bustCache = false,
+): Promise<CreateAppFactory | null> {
+  // When busting cache we skip the package-name import (it uses Bun's module
+  // registry which we cannot easily invalidate) and go straight to file paths
+  // with a unique query-string to bypass the import cache.
+  if (!bustCache) {
+    try {
+      const mod = await import(`${cell.packageName}/backend`);
+      const factory = extractGatewayFactory(mod);
+      if (factory) return factory;
+    } catch {
+      /* try file paths */
+    }
   }
+  const suffix = bustCache ? `?t=${Date.now()}` : "";
   for (const backendEntryPath of buildBackendEntryCandidates(cell)) {
     if (!existsSync(backendEntryPath)) continue;
     try {
-      const mod = await import(pathToFileURL(backendEntryPath).href);
+      const mod = await import(`${pathToFileURL(backendEntryPath).href}${suffix}`);
       const factory = extractGatewayFactory(mod);
       if (factory) return factory;
     } catch {
@@ -80,6 +92,67 @@ function buildCellEnv(
 
 export type DevGatewayServer = { stop: () => void; port: number };
 
+// ---------------------------------------------------------------------------
+// Hot-reload helpers
+// ---------------------------------------------------------------------------
+
+/** Simple debounce that collapses rapid calls into one trailing invocation. */
+export function createDebounce(fn: () => void, ms: number): () => void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      fn();
+    }, ms);
+  };
+}
+
+export const WATCHED_EXTENSIONS = /\.(ts|js|tsx|jsx|mts|mjs)$/;
+
+/**
+ * Watch a cell's backend directory for `.ts`/`.js` changes and reload the
+ * cell's Hono app (via the mutable `appRef`) without restarting the server.
+ */
+export function setupCellWatcher(
+  cell: StackCellModel,
+  env: Record<string, string>,
+  appRef: CellAppRef,
+): FSWatcher | null {
+  const backend = cell.backend as CellBackendConfig | undefined;
+  const backendDir = backend?.dir ?? "backend";
+  const watchDir = resolve(cell.packageRootAbs, backendDir);
+  if (!existsSync(watchDir)) return null;
+
+  const reload = createDebounce(async () => {
+    console.log(`[otavia] reloading ${cell.mount}...`);
+    try {
+      const factory = await loadCellGatewayApp(cell, /* bustCache */ true);
+      if (!factory) {
+        console.warn(`[otavia] reload failed: no createAppForBackend for "${cell.mount}"`);
+        return;
+      }
+      const newApp = await Promise.resolve(factory(env));
+      appRef.current = newApp;
+      console.log(`[otavia] reloaded ${cell.mount} ✔`);
+    } catch (err) {
+      console.error(`[otavia] reload error for "${cell.mount}":`, err);
+    }
+  }, 300);
+
+  try {
+    const watcher = watch(watchDir, { recursive: true }, (_event, filename) => {
+      if (filename && WATCHED_EXTENSIONS.test(filename)) {
+        reload();
+      }
+    });
+    return watcher;
+  } catch (err) {
+    console.warn(`[otavia] could not watch ${watchDir}:`, err);
+    return null;
+  }
+}
+
 /**
  * Single-process dev gateway: mounts each cell's `createAppForBackend` at `/<mount>`.
  * Does not start Docker or legacy AWS-only local resources.
@@ -104,6 +177,7 @@ export async function runDevGateway(
     app.get(`/${m}`, (c) => c.redirect(`/${m}/`, 301));
   }
 
+  const watchers: FSWatcher[] = [];
   let mounted = 0;
   for (const mount of mounts) {
     const cell = model.cells[mount];
@@ -115,27 +189,38 @@ export async function runDevGateway(
     }
     const env = buildCellEnv(cell, backendPort, mergedEnv, options?.publicBaseUrl);
     const cellApp = await Promise.resolve(factory(env));
+
+    // Mutable reference: route handlers always call appRef.current so we can
+    // swap the backing app on hot-reload without touching the Hono router.
+    const appRef: CellAppRef = { current: cellApp };
+
     const prefix = `/${mount}`;
     app.all(`${prefix}/`, async (c) => {
+      if (!appRef.current) return c.text("Cell not loaded", 503);
       const newUrl = buildForwardUrlForCellMount(c.req.url, prefix);
       const newReq = new Request(newUrl.href, {
         method: c.req.method,
         headers: c.req.raw.headers,
         body: c.req.raw.body,
       });
-      return cellApp.fetch(newReq);
+      return appRef.current.fetch(newReq);
     });
     app.all(`${prefix}/*`, async (c) => {
+      if (!appRef.current) return c.text("Cell not loaded", 503);
       const newUrl = buildForwardUrlForCellMount(c.req.url, prefix);
       const newReq = new Request(newUrl.href, {
         method: c.req.method,
         headers: c.req.raw.headers,
         body: c.req.raw.body,
       });
-      return cellApp.fetch(newReq);
+      return appRef.current.fetch(newReq);
     });
     mounted++;
     console.log(`[gateway] Mounted ${mount} at /${mount}`);
+
+    // Set up hot-reload watcher for this cell
+    const watcher = setupCellWatcher(cell, env, appRef);
+    if (watcher) watchers.push(watcher);
   }
 
   if (mounted === 0 && mounts.length > 0) {
@@ -152,5 +237,11 @@ export async function runDevGateway(
 
   const port = server.port ?? backendPort;
   console.log(`[gateway] Listening on http://localhost:${port}`);
-  return { stop: () => server.stop(), port };
+  return {
+    stop: () => {
+      for (const w of watchers) w.close();
+      server.stop();
+    },
+    port,
+  };
 }
