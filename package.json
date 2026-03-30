@@ -10,7 +10,8 @@
     "typecheck": "bun run --cwd packages/cli-legacy typecheck",
     "test": "bun run --cwd packages/cli-legacy test",
     "build:runtime": "bun run --cwd packages/cli-legacy build:runtime",
-    "smoke:init-dev": "bun run --cwd packages/cli-legacy smoke:init-dev"
+    "smoke:init-dev": "bun run --cwd packages/cli-legacy smoke:init-dev",
+    "smoke:e2e": "bun run --cwd packages/cli smoke:e2e"
   },
   "peerDependencies": {
     "typescript": "^5"

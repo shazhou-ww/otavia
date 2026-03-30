@@ -28,7 +28,8 @@
     "build:types": "tsc -p tsconfig.build.json",
     "dev": "bun run src/cli.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test src/"
+    "test": "bun test src/",
+    "smoke:e2e": "bun run scripts/smoke-e2e.ts"
   },
   "dependencies": {
     "@otavia/host-aws": "^0.0.2",

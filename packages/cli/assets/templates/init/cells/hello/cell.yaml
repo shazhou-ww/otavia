@@ -4,5 +4,5 @@ backend:
   runtime: bun
   entries:
     api:
-      entry: handler.ts
+      handler: handler.ts
       routes: []

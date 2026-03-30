@@ -9,10 +9,25 @@ export function createAppForBackend(_env: Record<string, string>): {
   return {
     fetch(req: Request): Response {
       const path = new URL(req.url).pathname.replace(/\/$/, "") || "/";
-      if (path === "/" || path === "") {
-        const r = handler();
-        return new Response(r.body, { status: r.statusCode });
+      
+      // Handle the API endpoint that the test expects
+      if (path === "/api/hello" || path === "/hello") {
+        const result = handler();
+        return new Response(result.body, { 
+          status: result.statusCode,
+          headers: { "Content-Type": "application/json" }
+        });
       }
+      
+      // Default handler for root
+      if (path === "/" || path === "") {
+        const result = handler();
+        return new Response(result.body, { 
+          status: result.statusCode,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+      
       return new Response("Not Found", { status: 404 });
     },
   };
