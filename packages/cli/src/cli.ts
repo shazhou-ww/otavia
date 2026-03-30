@@ -13,6 +13,8 @@ import { runSetup } from "./commands/setup.js";
 import { runTestCommand } from "./commands/test.js";
 import { runTypecheckCommand } from "./commands/typecheck.js";
 import { createHostAdapterForCloud } from "./host/create-host-adapter.js";
+import { runDoctor } from "./commands/doctor.js";
+import { runStatus } from "./commands/status.js";
 
 function findPackageVersion(): string {
   let dir = dirname(fileURLToPath(import.meta.url));
@@ -107,6 +109,20 @@ program
   .description("Run typecheck script in stack and cell packages when present (fail-fast)")
   .action(() => {
     runTypecheckCommand();
+  });
+
+program
+  .command("status")
+  .description("Show current workspace and stack status")
+  .action(() => {
+    runStatus();
+  });
+
+program
+  .command("doctor")
+  .description("Check environment dependencies and workspace health")
+  .action(() => {
+    runDoctor();
   });
 
 program
